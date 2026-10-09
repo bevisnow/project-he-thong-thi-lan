@@ -1,0 +1,5 @@
+# Ignore SQLite database and project files
+*.db
+*.sqlite
+*.sqlite3
+*.sqbpro
