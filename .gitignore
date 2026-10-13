@@ -3,3 +3,6 @@
 *.sqlite
 *.sqlite3
 *.sqbpro
+# Python cache
+__pycache__/
+*.py[cod]
