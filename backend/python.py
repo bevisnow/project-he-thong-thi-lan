@@ -2,6 +2,7 @@ from pathlib import Path
 import sqlite3
 import json
 import asyncio
+import traceback
 
 from contextlib import asynccontextmanager
 from fastapi import HTTPException
@@ -82,7 +83,7 @@ def auto_submit_expired_students():
 
             if row["end_time"]:
                 session_end = datetime.strptime(
-                    row["session_end_time"], "%Y-%m-%d %H:%M:%S"
+                    row["end_time"], "%Y-%m-%d %H:%M:%S"
                 ).replace(tzinfo=timezone.utc)
 
                 deadline = min(deadline, session_end)
@@ -110,7 +111,7 @@ def auto_submit_expired_students():
 
     except Exception as e:
         conn.rollback()
-        print("LỖI TỰ ĐỘNG CHỐT BÀI:", repr(e), flush=True)
+        traceback.print_exc()
 
     finally:
         conn.close()       
