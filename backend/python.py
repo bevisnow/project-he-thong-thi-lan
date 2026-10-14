@@ -1,9 +1,11 @@
 from pathlib import Path
 import sqlite3
 import json
+import asyncio
 
+from contextlib import asynccontextmanager
 from fastapi import HTTPException
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 from typing import Literal
 from pydantic import BaseModel, Field
@@ -14,8 +16,24 @@ from fastapi.responses import Response
 BASE_DIR = Path(__file__).resolve().parent.parent
 DB_PATH = BASE_DIR / "database" / "data-test.db"
 
-app = FastAPI(title="Hệ thống thi offline LAN")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    task = asyncio.create_task(auto_submit_loop())
+    try:
+        yield
+    finally:
+        task.cancel()
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
 
+async def auto_submit_loop():
+    while True:
+        auto_submit_expired_students()
+        await asyncio.sleep(5)
+
+app = FastAPI(title="Hệ thống thi offline", lifespan=lifespan)
 
 def get_db():
     conn = sqlite3.connect(DB_PATH)
@@ -23,10 +41,79 @@ def get_db():
     conn.execute("PRAGMA foreign_keys = ON")
     return conn
 
-def get_vietnam_time():
-    return datetime.now(
-        ZoneInfo("Asia/Bangkok")
-    ).strftime("%Y-%m-%d %H:%M:%S")
+def get_utc_time():
+    return datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+
+
+def auto_submit_expired_students():
+    conn = get_db()
+
+    try:
+        now = datetime.now(timezone.utc)
+        now_text = now.strftime("%Y-%m-%d %H:%M:%S")
+
+        rows = conn.execute("""
+            SELECT
+                ss.session_student_id,
+                ss.started_at,
+                es.end_time,
+                e.duration_minutes
+            FROM session_students ss
+            JOIN exam_sessions es
+                ON es.session_id = ss.session_id
+            JOIN exams e
+                ON e.exam_id = es.exam_id
+            WHERE ss.status = 'in_progress'
+              AND ss.submitted_at IS NULL
+              AND es.status = 'ongoing'
+              AND ss.started_at IS NOT NULL
+        """).fetchall()
+
+        expired_ids = []
+
+        for row in rows:
+            started_at = datetime.strptime(
+                row["started_at"], "%Y-%m-%d %H:%M:%S"
+            ).replace(tzinfo=timezone.utc)
+
+            deadline = started_at + timedelta(
+                minutes=row["duration_minutes"]
+            )
+
+            if row["end_time"]:
+                session_end = datetime.strptime(
+                    row["session_end_time"], "%Y-%m-%d %H:%M:%S"
+                ).replace(tzinfo=timezone.utc)
+
+                deadline = min(deadline, session_end)
+
+            if now >= deadline:
+                expired_ids.append(row["session_student_id"])
+
+        for student_id in expired_ids:
+            conn.execute("""
+                UPDATE session_students
+                SET status = 'submitted',
+                    submitted_at = ?
+                WHERE session_student_id = ?
+                  AND status = 'in_progress'
+                  AND submitted_at IS NULL
+            """, (now_text, student_id))
+
+        conn.commit()
+
+        if expired_ids:
+            print(
+                f"Đã tự động chốt {len(expired_ids)} bài thi hết giờ.",
+                flush=True
+            )
+
+    except Exception as e:
+        conn.rollback()
+        print("LỖI TỰ ĐỘNG CHỐT BÀI:", repr(e), flush=True)
+
+    finally:
+        conn.close()       
 
 @app.get("/")
 def home():
@@ -235,6 +322,61 @@ def get_questions_detail(question_id: int):
     finally:
         conn.close()
 
+@app.get("/api/student/questions/{question_id}")
+def get_student_question(question_id: int):
+    conn = get_db()
+
+    try:
+        question = conn.execute(
+            """
+            SELECT  
+            question_id,
+            question_type,
+            question_text
+            FROM questions
+            WHERE question_id = ?
+            AND is_active = 1
+            """, (question_id,)).fetchone()
+
+        if question is None:
+            raise HTTPException(
+                status_code=404,
+                detail="không tìm thấy câu hỏi or câu hỏi bị vô hiệu hóa"
+            )
+
+        options = conn.execute(
+            """
+            SELECT
+            option_key,
+            option_text,
+            sort_order
+            FROM question_options
+            WHERE question_id = ?
+            ORDER by sort_order
+            """, (question_id,)).fetchall()
+
+        media = conn.execute(
+            """
+            SELECT
+            media_id,
+            media_type,
+            file_path,
+            sort_order
+            FROM question_media
+            WHERE question_id = ?
+            ORDER by sort_order
+            """, (question_id,)).fetchall()
+
+        return {
+            "status": "ok",
+            "question": dict(question),
+            "options": [dict(option) for option in options],
+            "media":[dict(item) for item in media]
+        }
+
+    finally:
+        conn.close()
+
 class QuestionOptionCreate(BaseModel):
     option_key: str
     option_text: str
@@ -359,7 +501,7 @@ def create_question(data: QuestionCreate):
     validate_question_data(data)
 
     conn = get_db()
-    created_at = get_vietnam_time()
+    created_at = get_utc_time()
     try:
         cursor = conn.execute("""
         INSERT INTO questions (
@@ -464,7 +606,7 @@ def create_question(data: QuestionCreate):
 def update_question(question_id: int, data: QuestionUpdate):
     conn = get_db()
     
-    updated_at = get_vietnam_time()
+    updated_at = get_utc_time()
 
     try:
         cursor = conn.execute(
@@ -795,3 +937,440 @@ def delete_question(question_id: int):
     finally:
         conn.close()
 
+class StudentAnswerCreate(BaseModel):
+    session_student_id:int 
+    question_id:int
+    answer_text: str
+
+class StudentSubmit(BaseModel):
+    session_student_id: int
+
+def check_student_can_answer(conn, session_student_id, question_id):
+    row = conn.execute(
+        """
+        SELECT
+        ss.status AS student_status,
+            ss.started_at,
+            ss.submitted_at,
+            es.status AS session_status,
+            es.start_time,
+            es.end_time,
+            e.duration_minutes AS duration_minutes,
+            evq.score AS question_score,
+            q.question_type,
+            q.is_active
+        FROM session_students ss
+        JOIN exam_sessions es
+            ON es.session_id = ss.session_id
+        JOIN exams e
+            ON e.exam_id = es.exam_id
+        JOIN exam_version_questions evq
+            ON evq.version_id = es.version_id
+        JOIN questions q
+            ON q.question_id = evq.question_id
+        WHERE ss.session_student_id = ?
+          AND evq.question_id = ?
+        """,(session_student_id, question_id)).fetchone()
+
+    if row is None:
+        raise HTTPException(
+            status_code=404,
+            detail="không tìm thấy học sinh hoặc câu hỏi không thuộc đề này"
+        )
+
+    if row["student_status"] != "in_progress":
+        raise HTTPException(
+            status_code=403,
+            detail="học sinh không ở trạng thái đang làm bài"
+        )
+
+    if row["submitted_at"] is not None:
+        raise HTTPException(
+            status_code=403,
+            detail="bài thi đã được nộp, không thể sửa"
+        )
+
+    if row["session_status"] != "ongoing":
+        raise HTTPException(
+            status_code=403,
+            detail="phiên thi chưa thể vào làm bài"
+        )
+
+    if not row["started_at"]:
+        raise HTTPException(
+            status_code=400,
+            detail="phiên thi chưa có thời gian mở"
+        )
+
+    try:
+        started_at = datetime.strptime(
+            row["started_at"],
+            "%Y-%m-%d %H:%M:%S"
+        ).replace(tzinfo=timezone.utc)
+
+        now = datetime.now(timezone.utc)
+
+        deadline = started_at + timedelta(
+            minutes=row["duration_minutes"]
+        )
+
+        if row["end_time"]:
+            session_end = datetime.strptime(
+                row["end_time"],
+                "%Y-%m-%d %H:%M:%S"
+            ).replace(tzinfo=timezone.utc)
+
+            deadline = min(deadline, session_end)
+
+    except (ValueError, TypeError):
+        raise HTTPException(
+            status_code=500,
+            detail="Dữ liệu thời gian không hợp lệ"
+        )
+
+    if now >= deadline:
+        raise HTTPException(
+            status_code=403,
+            detail="Đã hết thời gian làm bài"
+        )
+
+
+    if row["is_active"] != 1:
+        raise HTTPException(
+            status_code=403,
+            detail="câu hỏi hiện không hoạt động"
+        )
+    
+    return row
+
+def check_student_can_submit(conn, session_student_id):
+    row = conn.execute(
+        """
+        SELECT
+            ss.status AS student_status,
+            ss.started_at,
+            ss.submitted_at,
+            es.status AS session_status,
+            es.end_time,
+            e.duration_minutes
+        FROM session_students ss
+        JOIN exam_sessions es
+            ON es.session_id = ss.session_id
+        JOIN exams e
+            ON e.exam_id = es.exam_id
+        WHERE ss.session_student_id = ?
+        """,
+        (session_student_id,)
+    ).fetchone()
+
+    if row is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Không tìm thấy học sinh trong phiên thi"
+        )
+
+    if row["student_status"] != "in_progress":
+        raise HTTPException(
+            status_code=403,
+            detail="Học sinh không ở trạng thái đang làm bài"
+        )
+
+    if row["submitted_at"] is not None:
+        raise HTTPException(
+            status_code=403,
+            detail="Bài thi đã được nộp trước đó"
+        )
+
+    if row["session_status"] != "ongoing":
+        raise HTTPException(
+            status_code=403,
+            detail="Phiên thi không còn hoạt động"
+        )
+
+    if not row["started_at"]:
+        raise HTTPException(
+            status_code=400,
+            detail="Học sinh chưa bắt đầu làm bài"
+        )
+
+    try:
+        started_at = datetime.strptime(
+            row["started_at"],
+            "%Y-%m-%d %H:%M:%S"
+        ).replace(tzinfo=timezone.utc)
+
+        now = datetime.now(timezone.utc)
+
+        deadline = started_at + timedelta(
+            minutes=row["duration_minutes"]
+        )
+
+        if row["end_time"]:
+            session_end = datetime.strptime(
+                row["end_time"],
+                "%Y-%m-%d %H:%M:%S"
+            ).replace(tzinfo=timezone.utc)
+
+            deadline = min(deadline, session_end)
+
+    except (ValueError, TypeError):
+        raise HTTPException(
+            status_code=500,
+            detail="Dữ liệu thời gian không hợp lệ"
+        )
+
+    return row, now >= deadline
+
+@app.post("/api/student/answers")
+def save_student_answer(data: StudentAnswerCreate):
+    conn = get_db()
+
+    try:
+        row = check_student_can_answer(
+            conn,
+            data.session_student_id,
+            data.question_id
+        )
+
+        
+        answer_text = data.answer_text.strip()
+
+        if not answer_text:
+            raise HTTPException(
+                status_code=400,
+                detail="Đáp án không được để trống"
+            )
+
+        question_type = row["question_type"]
+        question_score = row["question_score"]
+
+        is_correct = None
+        score = 0.0
+
+        if question_type == "multiple_choice":
+            option = conn.execute("""
+                SELECT is_correct
+                FROM question_options
+                WHERE question_id = ? AND option_key = ?
+            """, (
+                data.question_id,
+                answer_text
+            )).fetchone()
+
+            if option is None:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Lựa chọn không hợp lệ"
+                )
+
+            is_correct = int(option["is_correct"] == 1)
+            score = question_score if is_correct else 0.0
+    
+        elif question_type == "true_false":
+            try:
+                student_answers = json.loads(answer_text)
+            except (json.JSONDecodeError, TypeError):
+                raise HTTPException(
+                    status_code=400,
+                    detail="Đáp án đúng/sai phải có định dạng JSON"
+                )
+
+            if (
+                not isinstance(student_answers, dict)
+                or set(student_answers.keys()) != {"A", "B", "C", "D"}
+                or any(
+                    type(student_answers[key]) is not bool
+                    for key in ("A", "B", "C", "D")
+                )
+            ):
+                raise HTTPException(
+                    status_code=400,
+                    detail="Cần trả lời đủ bốn mệnh đề A, B, C, D bằng true hoặc false"
+                )
+
+            options = conn.execute("""
+                SELECT option_key, is_correct
+                FROM question_options
+                WHERE question_id = ?
+            """, (data.question_id,)).fetchall()
+
+            correct_map = {
+                item["option_key"]: bool(item["is_correct"])
+                for item in options
+            }
+
+            if set(correct_map.keys()) != {"A", "B", "C", "D"}:
+                raise HTTPException(
+                    status_code=500,
+                    detail="Dữ liệu đáp án đúng/sai của câu hỏi không hợp lệ"
+                )
+
+            correct_count = sum(
+                student_answers[key] == correct_map[key]
+                for key in ("A", "B", "C", "D")
+            )
+
+            fractions = {
+                0: 0.0,
+                1: 0.1,
+                2: 0.25,
+                3: 0.5,
+                4: 1.0
+            }
+
+            is_correct = int(correct_count == 4)
+            score = question_score * fractions[correct_count]
+
+            answer_text = json.dumps(
+                student_answers,
+                sort_keys=True,
+                separators=(",", ":")
+            )
+
+        elif question_type == "short_answer":
+            accepted_answers = conn.execute("""
+                SELECT answer_text, is_case_sensitive
+                FROM question_accepted_answers
+                WHERE question_id = ?
+            """, (data.question_id,)).fetchall()
+
+            if not accepted_answers:
+                raise HTTPException(
+                    status_code=500,
+                    detail="Câu hỏi chưa có đáp án được chấp nhận"
+                )
+
+            is_correct = int(any(
+                answer_text == item["answer_text"]
+                if item["is_case_sensitive"]
+                else answer_text.casefold()
+                     == item["answer_text"].strip().casefold()
+                for item in accepted_answers
+            ))
+
+            score = question_score if is_correct else 0.0
+
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail="Loại câu hỏi không được hỗ trợ"
+            )
+
+
+        answered_at = get_utc_time()
+
+        conn.execute(
+            """
+            INSERT INTO answers (
+                session_student_id,
+                question_id,
+                answer_text,
+                is_correct,
+                score,
+                answered_at,
+                updated_at
+            )
+            VALUES (?, ?, ?, ?, ?, ? ,?)
+            ON CONFLICT(session_student_id, question_id)
+            DO UPDATE SET
+                answer_text = excluded.answer_text,
+                updated_at = excluded.updated_at,
+                is_correct = excluded.is_correct,
+                score = excluded.score
+        """, (
+            (
+                data.session_student_id,
+                data.question_id,
+                answer_text,
+                is_correct,
+                score,
+                answered_at,
+                answered_at
+)
+        ))
+
+        conn.commit()
+
+        return {
+            "status": "ok",
+            "message": "Lưu đáp án thành công",
+            "question_id": data.question_id
+        }
+
+    except HTTPException:
+        conn.rollback()
+        raise
+
+    except Exception as e:
+        conn.rollback()
+        print("LỖI LƯU ĐÁP ÁN:", repr(e), flush=True)
+        raise HTTPException(
+            status_code=500,
+            detail="Có lỗi xảy ra khi lưu đáp án"
+        )
+
+    finally:
+        conn.close()
+
+@app.post("/api/student/submit")
+def submit_student_exam(data: StudentSubmit):
+    conn = get_db()
+
+    try:
+        row, is_time_up = check_student_can_submit(
+            conn,
+            data.session_student_id
+        )
+
+        submitted_at = get_utc_time()
+
+        
+        cursor = conn.execute(
+            """
+            UPDATE session_students
+            SET
+                status = 'submitted',
+                submitted_at = ?
+            WHERE session_student_id = ?
+              AND status = 'in_progress'
+              AND submitted_at IS NULL
+            """,
+            (submitted_at, data.session_student_id)
+        )
+
+        if cursor.rowcount != 1:
+            conn.rollback()
+            raise HTTPException(
+                status_code=409,
+                detail="Không thể cập nhật trạng thái nộp bài"
+            )
+
+        conn.commit()
+
+        return{
+            "status": "ok",
+            "message": (
+                "đã hết giờ, hệ thống đã chốt bài thi"
+                if is_time_up
+                else "nộp bài thành công"
+            ),
+            "session_student_id": data.session_student_id,
+            "student_status": "submitted",
+            "submitted_at": submitted_at,
+            "time_up": is_time_up
+        }
+
+    except HTTPException:
+        conn.rollback()
+        raise
+
+    except Exception as e:
+        conn.rollback()
+        print("LỖI NỘP BÀI: ", repr(e), flush=True)
+        raise HTTPException(
+            status_code=500,
+            detail="có lỗi xảy ra khi nộp bài"
+        )
+
+    finally:
+        conn.close()
