@@ -3,6 +3,7 @@ import json
 import asyncio
 import traceback
 
+from pwdlib import PasswordHash
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 from contextlib import asynccontextmanager
@@ -14,7 +15,18 @@ from pydantic import BaseModel, Field
 from fastapi import FastAPI
 from fastapi.responses import Response
 
-# Đường dẫn database tính từ vị trí file main.py
+password_hash = PasswordHash.recommended()
+
+class UserCreate(BaseModel):
+    username: str = Field(min_length=3, max_length=50)
+    password: str = Field(min_length=8, max_length=128)
+    full_name: str = Field(min_length=1, max_length=100)
+    role: str = "teacher"
+
+class UserLogin(BaseModel):
+    username: str
+    password: str
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 DB_PATH = BASE_DIR / "database" / "data-test.db"
 
@@ -1398,5 +1410,172 @@ def submit_student_exam(data: StudentSubmit):
             detail="có lỗi xảy ra khi nộp bài"
         )
 
+    finally:
+        conn.close()
+
+@app.get("/api/users")
+def get_users():
+    conn = get_db()
+
+    try:
+        rows = conn.execute(
+            """
+            SELECT
+            user_id,
+            username,
+            full_name,
+            role,
+            is_active,
+            created_at
+            FROM users
+            ORDER BY user_id
+            """).fetchall()
+
+        return {
+            "status": "ok",
+            "count": len(rows),
+            "users": [dict(row) for row in rows]
+        }
+
+    finally:
+        conn.close()
+
+@app.get("/api/users/{user_id}")
+def get_user_detail(user_id: int):
+    conn = get_db()
+
+    try:
+        row = conn.execute(
+            """
+            SELECT
+            user_id,
+            username,
+            full_name,
+            role,
+            is_active,
+            created_at
+            FROM users
+            WHERE user_id = ?
+            """, (user_id,)).fetchone()
+
+        if row is None:
+            raise HTTPException(
+                status_code=404,
+                detail="không tìm thấy ng dùng"
+            )
+
+        return {
+            "status": "ok",
+            "user": dict(row)
+        }
+
+    finally:
+        conn.close()
+
+@app.post("/api/users")
+def create_user(user: UserCreate):
+    if user.role != "teacher":
+        raise HTTPException(
+            status_code=400,
+            detail="chỉ tạo được tài khoản giáo viên"
+        )
+    hashed_password = password_hash.hash(user.password)
+    conn = get_db()
+
+    try:
+        existing_user = conn.execute(
+            "SELECT user_id FROM users WHERE username = ?",
+            (user.username,)
+        ).fetchone()
+
+        if existing_user is not None:
+            raise HTTPException(
+                status_code=409,
+                detail="Tên đăng nhập đã tồn tại"
+            )
+
+        # Thêm tài khoản vào database
+        cursor = conn.execute(
+            """
+            INSERT INTO users (
+                username,
+                password_hash,
+                full_name,
+                role
+            )
+            VALUES (?, ?, ?, ?)
+            """,
+            (
+                user.username,
+                hashed_password,
+                user.full_name,
+                user.role
+            )
+        )
+
+        conn.commit()
+
+        return {
+            "status": "ok",
+            "message": "Tạo tài khoản thành công",
+            "user_id": cursor.lastrowid,
+            "username": user.username
+        }
+
+    except HTTPException:
+        raise
+
+    except Exception:
+        conn.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail="Có lỗi xảy ra khi tạo tài khoản"
+        )
+
+    finally:
+        conn.close()
+
+@app.post("/api/login")
+def logion(user: UserLogin):
+    conn = get_db()
+
+    try:
+        row = conn.execute(
+            """
+            SELECT
+            user_id,
+            username,
+            password_hash,
+            full_name,
+            role,
+            is_active
+            FROM users
+            WHERE username = ?
+            """, (user.username,)).fetchone()
+        if row is None or not password_hash.verify(
+            user.password,
+            row["password_hash"]
+        ):
+            raise HTTPException(
+                status_code=401,
+                detail="tên đăng nhập hoặc mật khẩu không đúng"
+            )
+
+        if row["is_active"] != 1:
+            raise HTTPException(
+                status_code=403,
+                detail="tài khoản đã bị vô hiệu hóa"
+            )
+
+        return {
+            "status": "ok",
+            "message": "Đăng nhập thành công",
+            "user": {
+                "user_id": row["user_id"],
+                "username": row["username"],
+                "full_name": row["full_name"],
+                "role": row["role"]
+            }
+        }
     finally:
         conn.close()
