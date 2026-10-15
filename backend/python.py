@@ -1,9 +1,10 @@
-from pathlib import Path
 import sqlite3
 import json
 import asyncio
 import traceback
 
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path
 from contextlib import asynccontextmanager
 from fastapi import HTTPException
 from datetime import datetime, timedelta, timezone
@@ -35,6 +36,15 @@ async def auto_submit_loop():
         await asyncio.sleep(5)
 
 app = FastAPI(title="Hệ thống thi offline", lifespan=lifespan)
+
+BASE_DIR = Path(__file__).resolve().parent
+MEDIA_DIR = BASE_DIR / "storage" / "question_media"
+
+app.mount(
+    "/media",
+    StaticFiles(directory=MEDIA_DIR),
+    name="media"
+)
 
 def get_db():
     conn = sqlite3.connect(DB_PATH)
@@ -310,15 +320,22 @@ def get_questions_detail(question_id: int):
             ORDER BY sort_order
             """,
             (question_id,)
-            ).fetchall()
-        
+            ).fetchall()    
+
+        media_list = [dict(item) for item in media]
+
+        for item in media_list:
+            if item["media_type"] == "image":
+                item["image_url"] = f"/media/{item['file_path']}"
+
         return {
             "status": "ok",
             "question": dict(row),
             "options": [dict(option) for option in options],
             "accepted_answers": [dict(answer) for answer in accepted_answers],
-            "media": [dict(item) for item in media]
+            "media": media_list
         }
+
     
     finally:
         conn.close()
@@ -368,12 +385,20 @@ def get_student_question(question_id: int):
             ORDER by sort_order
             """, (question_id,)).fetchall()
 
+        
+        media_list = [dict(item) for item in media]
+
+        for item in media_list:
+            if item["media_type"] == "image":
+                item["image_url"] = f"/media/{item['file_path']}"
+
         return {
             "status": "ok",
             "question": dict(question),
             "options": [dict(option) for option in options],
-            "media":[dict(item) for item in media]
+            "media": media_list
         }
+
 
     finally:
         conn.close()
