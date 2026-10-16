@@ -1739,3 +1739,28 @@ def get_topics():
 
     finally:
         conn.close()
+
+@app.get("/api/lessons")
+def get_lessons():
+    conn = get_db()
+
+    try:
+        rows = conn.execute(
+            """
+            SELECT 
+            lesson_id,
+            topic_id,
+            lesson_name,
+            lesson_order,
+            is_active
+            FROM lessons
+            ORDER BY lesson_id
+            """).fetchall()
+
+        return {
+            "count": len(rows),
+            "lessons": [dict(row) for row in rows]
+        }
+
+    finally:
+        conn.close()
