@@ -1714,4 +1714,28 @@ def get_grades():
 
     finally:
         conn.close()
-        
+
+@app.get("/api/topics")
+def get_topics():
+    conn = get_db()
+
+    try:
+        rows = conn.execute(
+            """
+            SELECT
+            topic_id,
+            subject_id,
+            grade_id,
+            topic_name,
+            is_active
+            FROM topics
+            ORDER BY topic_id
+            """).fetchall()
+
+        return {
+            "count": len(rows),
+            "topics": [dict(row) for row in rows]
+        }
+
+    finally:
+        conn.close()
