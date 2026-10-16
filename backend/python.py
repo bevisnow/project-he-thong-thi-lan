@@ -2,7 +2,9 @@ import sqlite3
 import json
 import asyncio
 import traceback
+import jwt
 
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pwdlib import PasswordHash
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
@@ -14,8 +16,10 @@ from typing import Literal
 from pydantic import BaseModel, Field
 from fastapi import FastAPI
 from fastapi.responses import Response
+from fastapi import Depends
 
 password_hash = PasswordHash.recommended()
+bearer_scheme = HTTPBearer()
 
 class UserCreate(BaseModel):
     username: str = Field(min_length=3, max_length=50)
@@ -27,8 +31,14 @@ class UserLogin(BaseModel):
     username: str
     password: str
 
+SECRET_KEY = "thay-bang-chuoi-bi-mat-dai-va-ngau-nhien"
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 DB_PATH = BASE_DIR / "database" / "data-test.db"
+
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -63,6 +73,66 @@ def get_db():
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     return conn
+
+def create_access_token(data: dict):
+    to_encode = data.copy()
+
+    expire = datetime.now(timezone.utc) + timedelta(
+        minutes=ACCESS_TOKEN_EXPIRE_MINUTES
+    )
+
+    to_encode.update({"exp": expire})
+
+    encoded_jwt = jwt.encode(
+        to_encode,
+        SECRET_KEY,
+        algorithm=ALGORITHM
+    )
+
+    return encoded_jwt
+
+def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)):
+    token = credentials.credentials
+    credentials_exception = HTTPException(
+        status_code=401,
+        detail="Không thể xác thực thông tin đăng nhập",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+    try:
+        payload = jwt.decode(
+            token,
+            SECRET_KEY,
+            algorithms=[ALGORITHM]
+        )
+
+        user_id = payload.get("sub")
+
+        if user_id is None:
+            raise credentials_exception
+
+    except jwt.InvalidTokenError:
+        raise credentials_exception
+
+    conn = get_db()
+
+    try:
+        row = conn.execute(
+            """
+            SELECT user_id, username, full_name, role, is_active
+            FROM users
+            WHERE user_id = ?
+            """,
+            (user_id,)
+        ).fetchone()
+
+        if row is None or row["is_active"] != 1:
+            raise credentials_exception
+
+        return dict(row)
+
+    finally:
+        conn.close()
 
 def get_utc_time():
     return datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
@@ -1441,7 +1511,14 @@ def get_users():
         conn.close()
 
 @app.get("/api/users/{user_id}")
-def get_user_detail(user_id: int):
+def get_user_detail(user_id: int, current_user: dict = Depends(get_current_user)):
+
+    if current_user["role"] != "admin" and current_user["user_id"] != user_id:
+        raise HTTPException(
+            status_code=403,
+            detail="Bạn không có quyền xem thông tin người dùng này"
+        )
+    
     conn = get_db()
 
     try:
@@ -1494,7 +1571,7 @@ def create_user(user: UserCreate):
                 detail="Tên đăng nhập đã tồn tại"
             )
 
-        # Thêm tài khoản vào database
+
         cursor = conn.execute(
             """
             INSERT INTO users (
@@ -1526,6 +1603,8 @@ def create_user(user: UserCreate):
         raise
 
     except Exception:
+        traceback.print_exc()
+
         conn.rollback()
         raise HTTPException(
             status_code=500,
@@ -1567,9 +1646,18 @@ def logion(user: UserLogin):
                 detail="tài khoản đã bị vô hiệu hóa"
             )
 
+        access_token = create_access_token(
+            data={
+                "sub": str(row["user_id"]),
+                "role": row["role"]
+            }
+        )
+
         return {
             "status": "ok",
             "message": "Đăng nhập thành công",
+            "access_token": access_token,
+            "token_type": "bearer",
             "user": {
                 "user_id": row["user_id"],
                 "username": row["username"],
@@ -1577,5 +1665,6 @@ def logion(user: UserLogin):
                 "role": row["role"]
             }
         }
+    
     finally:
         conn.close()
