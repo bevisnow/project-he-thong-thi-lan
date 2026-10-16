@@ -1668,3 +1668,28 @@ def logion(user: UserLogin):
     
     finally:
         conn.close()
+
+@app.get("/api/subjects")
+def get_subjects():
+    conn = get_db()
+
+    try:
+        rows = conn.execute(
+            """
+            SELECT
+            subject_id,
+            subject_name,
+            is_active
+            FROM subjects
+            ORDER BY subject_id
+            """).fetchall()
+
+        return {
+            "count": len(rows),
+            "subjects": [dict(row) for row in rows]
+        }
+
+    finally:
+        conn.close()
+
+        
