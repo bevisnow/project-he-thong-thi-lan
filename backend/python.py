@@ -1692,6 +1692,32 @@ def get_subjects():
     finally:
         conn.close()
 
+@app.get("/api/subjects/{subject_id}")
+def get_subject_detail(subject_id: int):
+    conn = get_db()
+
+    try:
+        row = conn.execute(
+            """
+            SELECT 
+            subject_id,
+            subject_name,
+            is_active
+            FROM subjects
+            WHERE subject_id = ?
+            """, (subject_id,)).fetchone()
+
+        if row is None:
+            raise HTTPException(
+                status_code=404,
+                detail="không tìm thấy môn học"
+            )
+
+        return dict(row)
+
+    finally:
+        conn.close()
+
 @app.get("/api/grades")
 def get_grades():
     conn = get_db()
@@ -1711,6 +1737,32 @@ def get_grades():
             "count": len(rows),
             "grades": [dict(row) for row in rows]
         }
+
+    finally:
+        conn.close()
+
+@app.get("/api/grades/{grade_id}")
+def get_grade_detail(grade_id: int):
+    conn = get_db()
+
+    try:
+        row = conn.execute(
+            """
+            SELECT
+            grade_id,
+            grade_name,
+            is_active
+            FROM grades
+            WHERE grade_id = ?
+            """, (grade_id,)).fetchone()
+
+        if row is None:
+            raise HTTPException(
+                status_code=404,
+                detail="không tìm thấy khối lớp"
+            )
+
+        return dict(row)
 
     finally:
         conn.close()
@@ -1740,6 +1792,34 @@ def get_topics():
     finally:
         conn.close()
 
+@app.get("/api/topics/{topic_id}")
+def get_detail_topic(topic_id: int):
+    conn = get_db()
+
+    try:
+        row = conn.execute(
+            """
+            SELECT
+            topic_id,
+            subject_id,
+            grade_id,
+            topic_name,
+            is_active
+            FROM topics
+            WHERE topic_id = ?
+            """, (topic_id,)).fetchone()
+        
+        if row is None:
+            raise HTTPException(
+                status_code=404,
+                detail="không tìm thấy chủ đề"
+            )
+
+        return dict(row)
+
+    finally:
+        conn.close()
+
 @app.get("/api/lessons")
 def get_lessons():
     conn = get_db()
@@ -1764,3 +1844,32 @@ def get_lessons():
 
     finally:
         conn.close()
+
+@app.get("/api/lessons/{lesson_id}")
+def get_lesson_detail(lesson_id: int):
+    conn = get_db()
+
+    try:
+        row = conn.execute(
+            """
+            SELECT
+            lesson_id,
+            topic_id,
+            lesson_name,
+            lesson_order,
+            is_active
+            FROM lessons
+            WHERE lesson_id = ?
+            """, (lesson_id,)).fetchone()
+
+        if row is None:
+            raise HTTPException(
+                status_code=404,
+                detail="không tìm thấy bài học"
+            )
+
+        return dict(row)
+
+    finally:
+        conn.close()
+
