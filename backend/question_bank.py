@@ -1,11 +1,3 @@
-"""Ngân hàng câu hỏi: thay toàn bộ nhóm route /api/questions* và /api/student/* cũ trong python.py.
-
-Gắn: cuối python.py thêm
-    from exam_routes import router
-    from question_bank import router as question_router
-    app.include_router(router); app.include_router(question_router)
-"""
-
 import io
 import secrets
 import sqlite3
@@ -280,7 +272,7 @@ def save(c, d, user_id, qid=None):
 
 def conflict(
     func, *args
-):  # đáp án trùng key/answer_text → lỗi UNIQUE của DB thành 409 thay vì 500
+):  
     try:
         return func(*args)
     except sqlite3.IntegrityError as e:
@@ -289,8 +281,6 @@ def conflict(
             detail=f"Dữ liệu trùng hoặc vi phạm ràng buộc: {e}",
         )
 
-
-# ───────────── route tĩnh phải đứng trước /questions/{id} ─────────────
 @router.get("/questions/stats")
 def stats(subject_id: int | None = None, grade_id: int | None = None, user=Depends(P.get_current_user)):
     """Còn bao nhiêu câu đang dùng được theo chủ đề/mức độ/loại: để giáo viên đặt ma trận cho khả thi."""
@@ -527,7 +517,6 @@ def import_questions(
     return {"status": "ok", "imported": len(good)}
 
 
-# ───────────── CRUD ─────────────
 @router.get("/questions")
 def list_questions(
     subject_id: int | None = None,
