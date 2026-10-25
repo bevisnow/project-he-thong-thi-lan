@@ -1,3 +1,4 @@
+import base64
 import hashlib
 import io
 import json
@@ -6,6 +7,7 @@ import secrets
 import socket
 import sqlite3
 import jwt
+import qrcode
 import docx_import
 import python as P  
 
@@ -250,7 +252,7 @@ def candidates(c, e, topic_id, lesson_id, difficulty, qtype):
             AND topic_id=? 
             AND difficulty=? 
             AND question_type=?
-            AND created_by=?
+            AND (created_by=? OR is_public=1)
         """
 
     args = [e["subject_id"], e["grade_id"], topic_id, difficulty, qtype, e["created_by"]]
@@ -889,13 +891,21 @@ def create_session(
             "session_id": sid,
             "access_code": code,
             "join_url": join_url(request, code),
+            "qr_data_url": join_qr_data_url(request, code),
         }
 
 
-def join_url(request, code):  # frontend vẽ QR từ link này
+def join_url(request, code):
     return (
         f"{request.url.scheme}://{lan_ip()}:{request.url.port or 80}/join?code={code}"
     )
+
+
+def join_qr_data_url(request, code):
+    image = qrcode.make(join_url(request, code))
+    output = io.BytesIO()
+    image.save(output, format="PNG")
+    return "data:image/png;base64," + base64.b64encode(output.getvalue()).decode()
 
 
 @teacher.get("/sessions")
@@ -922,6 +932,7 @@ def session_detail(sid: int, request: Request):
         s.pop("password_hash")
         s["has_password"] = bool(get_session(c, sid)["password_hash"])
         s["join_url"] = join_url(request, s["access_code"])
+        s["qr_data_url"] = join_qr_data_url(request, s["access_code"])
         return s
 
 
@@ -986,6 +997,12 @@ def change_status(sid: int, d: StatusChange):
                 (sid,),
             )
 
+        if d.status == "ongoing" and not s["start_time"]:
+            c.execute(
+                "UPDATE exam_sessions SET start_time=? WHERE session_id=?",
+                (now_utc().strftime(FMT), sid),
+            )
+
         c.execute(
             """
             UPDATE exam_sessions 
@@ -998,7 +1015,7 @@ def change_status(sid: int, d: StatusChange):
         return {"status": "ok", "session_status": d.status}
 
 
-# ── danh sách thí sinh ──
+# phần danh sách thí sinh 
 def add_to_session(c, sid, student_id):
     c.execute(
         """
@@ -1482,6 +1499,29 @@ def join(d: Join):
             (s["session_id"], d.student_code.strip()),
         ).fetchone()
 
+        if not st:
+            raise HTTPException(
+                status_code=404,
+                detail="Mã học sinh/SBD không có trong danh sách phòng thi",
+            )
+
+        join_deadline = parse(s["start_time"]) + timedelta(minutes=15) if s["start_time"] else None
+        if st["status"] == "registered" and join_deadline and now >= join_deadline:
+            c.execute(
+                "UPDATE session_students SET status='absent' WHERE session_id=? AND status='registered'",
+                (s["session_id"],),
+            )
+            c.commit()
+            raise HTTPException(
+                status_code=403,
+                detail="Đã quá 15 phút từ giờ bắt đầu. Bạn được ghi nhận vắng và không thể vào thi.",
+            )
+        if st["status"] == "absent":
+            raise HTTPException(
+                status_code=403,
+                detail="Bạn đã được ghi nhận vắng vì vào thi muộn quá 15 phút.",
+            )
+
         if s["password_hash"] and st:
             attempt = c.execute(
                 "SELECT failed_attempts, locked_until FROM student_room_login_attempts WHERE session_student_id=?",
@@ -1528,12 +1568,6 @@ def join(d: Join):
             raise HTTPException(
                 403,
                 f"Sai mật khẩu phòng thi. Còn {5-attempt['failed_attempts']} lần thử trước khi khóa 15 phút.",
-            )
-
-        if not st:
-            raise HTTPException(
-                status_code=404,
-                detail="Mã học sinh/SBD không có trong danh sách phòng thi",
             )
 
         c.execute(

@@ -92,7 +92,7 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-DB_PATH = BASE_DIR / "database" / "data-test.db"
+DB_PATH = BASE_DIR / "database" / "data.db"
 
 
 def ensure_student_date_of_birth_column():
@@ -199,6 +199,25 @@ def ensure_class_owner_column():
         conn.close()
 
 
+def ensure_question_visibility_column():
+    if not DB_PATH.is_file():
+        return
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        exists = conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='questions'"
+        ).fetchone()
+        if exists and "is_public" not in {
+            row[1] for row in conn.execute("PRAGMA table_info(questions)")
+        }:
+            conn.execute(
+                "ALTER TABLE questions ADD COLUMN is_public INTEGER NOT NULL DEFAULT 0 CHECK(is_public IN (0, 1))"
+            )
+            conn.commit()
+    finally:
+        conn.close()
+
+
 def rotate_short_room_codes():
     if not DB_PATH.is_file():
         return
@@ -229,6 +248,7 @@ async def lifespan(app: FastAPI):
     ensure_student_room_login_attempts()
     ensure_teacher_login_columns()
     ensure_class_owner_column()
+    ensure_question_visibility_column()
     rotate_short_room_codes()
     task = asyncio.create_task(auto_submit_loop())
     try:
@@ -487,6 +507,7 @@ def auto_submit_expired_students():
                 (now_text, student_id),
             )
 
+        join_cutoff = (now - timedelta(minutes=15)).strftime("%Y-%m-%d %H:%M:%S")
         expired_sessions = conn.execute(
             """
             SELECT session_id
@@ -497,6 +518,21 @@ def auto_submit_expired_students():
             """,
             (now_text,),
         ).fetchall()
+
+        conn.execute(
+            """
+            UPDATE session_students
+            SET status='absent'
+            WHERE status='registered'
+              AND session_id IN (
+                  SELECT session_id FROM exam_sessions
+                  WHERE status='ongoing'
+                    AND start_time IS NOT NULL
+                    AND start_time<=?
+              )
+            """,
+            (join_cutoff,),
+        )
 
         for (session_id,) in expired_sessions:
             conn.execute(

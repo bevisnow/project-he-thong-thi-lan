@@ -52,6 +52,7 @@ class QuestionIn(BaseModel):  # dùng chung cho tạo mới và sửa (PUT thay 
     question_text: str = Field(min_length=1, max_length=20000)
     explanation: str | None = Field(default=None, max_length=20000)
     is_active: bool = True
+    is_public: bool = False
     options: list[OptionIn] = Field(default_factory=list, max_length=4)
     accepted_answers: list[AcceptedIn] = Field(default_factory=list, max_length=100)
     media: list[MediaIn] = Field(default_factory=list, max_length=20)
@@ -148,6 +149,19 @@ def get_owned(c, qid, user):
     return question
 
 
+def get_visible(c, qid, user):
+    question = c.execute(
+        "SELECT * FROM questions WHERE question_id=?", (qid,)
+    ).fetchone()
+    if not question or (
+        user["role"] != "admin"
+        and question["created_by"] != user["user_id"]
+        and not question["is_public"]
+    ):
+        raise HTTPException(404, detail="Không tìm thấy câu hỏi")
+    return question
+
+
 def save(c, d, user_id, qid=None):
     validate_question_data(d)
     check_refs(c, d)
@@ -162,6 +176,7 @@ def save(c, d, user_id, qid=None):
         d.question_text.strip(),
         d.explanation,
         int(d.is_active),
+        int(d.is_public),
     )
 
     if qid is None:
@@ -177,10 +192,11 @@ def save(c, d, user_id, qid=None):
                 question_text,
                 explanation,
                 is_active,
+                is_public,
                 created_by,
                 created_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             fields + (user_id, P.get_utc_time()),
         ).lastrowid
@@ -197,6 +213,7 @@ def save(c, d, user_id, qid=None):
                 question_text = ?,
                 explanation = ?,
                 is_active = ?,
+                is_public = ?,
                 updated_at = ?
             WHERE question_id = ?
             """,
@@ -296,7 +313,7 @@ def stats(subject_id: int | None = None, grade_id: int | None = None, user=Depen
             question_type, 
             COUNT(*) AS n 
             FROM questions
-            WHERE is_active=1 AND (? = 'admin' OR created_by = ?)
+            WHERE is_active=1 AND (? = 'admin' OR created_by = ? OR is_public=1)
                 AND (? IS NULL OR subject_id=?) 
                 AND (? IS NULL OR grade_id=?)
             GROUP BY topic_id, lesson_id, difficulty, question_type 
@@ -448,6 +465,7 @@ def import_questions(
     grade_id: int,
     topic_id: int,
     lesson_id: int | None = None,
+    is_public: bool = False,
     commit: bool = False,
     file: UploadFile = File(...),
     user: dict = Depends(P.get_current_user),
@@ -455,7 +473,7 @@ def import_questions(
     """Nhận .xlsx hoặc .docx (mẫu Loai_TN/DS/TLN). Môn/khối/chủ đề/bài chọn trên web cho cả file.
     commit=false: xem trước + lỗi từng dòng; commit=true: ghi, chỉ khi không còn lỗi."""
     ctx = dict(
-        subject_id=subject_id, grade_id=grade_id, topic_id=topic_id, lesson_id=lesson_id
+        subject_id=subject_id, grade_id=grade_id, topic_id=topic_id, lesson_id=lesson_id, is_public=is_public
     )
     raw = P.read_upload_limited(file, 10 * 1024 * 1024, "File import tối đa 10MB")
     items = []  # (số dòng, đoạn xem trước, hàm dựng câu hỏi, dữ liệu dòng)
@@ -534,7 +552,7 @@ def list_questions(
 
     where, args = [], []
     if user["role"] != "admin":
-        where.append("created_by=?")
+        where.append("(created_by=? OR is_public=1)")
         args.append(user["user_id"])
     for col, v in (
         ("subject_id", subject_id),
@@ -559,17 +577,24 @@ def list_questions(
         total = c.execute(f"SELECT COUNT(*) FROM questions{w}", args).fetchone()[0]
         rows = c.execute(
             f"SELECT question_id, subject_id, grade_id, topic_id, lesson_id, question_type, difficulty, question_text, "
-            f"is_active, created_by FROM questions{w} ORDER BY question_id DESC LIMIT ? OFFSET ?",
+            f"is_active, is_public, created_by FROM questions{w} ORDER BY question_id DESC LIMIT ? OFFSET ?",
             args + [max(1, min(limit, 200)), max(0, offset)],
         ).fetchall()
-        return {"total": total, "questions": [dict(r) for r in rows]}
+        questions = []
+        for row in rows:
+            item = dict(row)
+            item["can_manage"] = user["role"] == "admin" or item["created_by"] == user["user_id"]
+            item.pop("created_by")
+            questions.append(item)
+        return {"total": total, "questions": questions}
 
 
 @router.get("/questions/{question_id}")
 def question_detail(question_id: int, user=Depends(P.get_current_user)):
     """Bản cho giáo viên: có đáp án đúng. Học sinh KHÔNG dùng route này (dùng /api/exam/questions/{n})."""
     with db() as c:
-        q = get_owned(c, question_id, user)
+        q = get_visible(c, question_id, user)
+        can_manage = user["role"] == "admin" or q["created_by"] == user["user_id"]
         rows = lambda sql: [dict(r) for r in c.execute(sql, (question_id,))]
         media = rows(
             "SELECT media_id, media_type, file_path, sort_order FROM question_media WHERE question_id=? ORDER BY sort_order"
@@ -581,6 +606,7 @@ def question_detail(question_id: int, user=Depends(P.get_current_user)):
 
         return {
             "question": dict(q),
+            "can_manage": can_manage,
             "used_in_exam": used_in_exam(c, question_id),
             "media": media,
             "options": rows(
@@ -611,6 +637,21 @@ def update_question(
             )
         conflict(save, c, d, user["user_id"], question_id)
         return {"status": "ok", "question_id": question_id}
+
+
+class Visibility(BaseModel):
+    is_public: bool
+
+
+@router.patch("/questions/{question_id}/visibility")
+def set_visibility(question_id: int, d: Visibility, user: dict = Depends(P.get_current_user)):
+    with db() as c:
+        get_owned(c, question_id, user)
+        c.execute(
+            "UPDATE questions SET is_public=?, updated_at=? WHERE question_id=?",
+            (int(d.is_public), P.get_utc_time(), question_id),
+        )
+        return {"status": "ok", "is_public": d.is_public}
 
 
 class Active(BaseModel):
