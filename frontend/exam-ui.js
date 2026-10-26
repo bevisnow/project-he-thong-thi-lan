@@ -423,8 +423,37 @@ function showViolationWarning(count) {
   );
 }
 
+const examReloadIntentKey = "examReloadIntentUntil";
+let examReloadPending = false;
+
+document.addEventListener("keydown", async (event) => {
+  const reloadKey = event.key === "F5" ||
+    ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "r");
+  if (state.page !== "exam" || !reloadKey) return;
+
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  if (examReloadPending) return;
+  examReloadPending = true;
+  try {
+    await window.saveCurrentAnswer();
+    sessionStorage.setItem(examReloadIntentKey, String(Date.now() + 5000));
+    location.reload();
+  } catch (error) {
+    examReloadPending = false;
+    toast("Chưa tải lại trang vì chưa lưu được đáp án: " + error.message);
+  }
+}, true);
+
+function isExamReloadIntent() {
+  const expiry = Number(sessionStorage.getItem(examReloadIntentKey) || 0);
+  if (expiry > Date.now()) return true;
+  sessionStorage.removeItem(examReloadIntentKey);
+  return false;
+}
+
 async function reportTabViolation(pageExit = false) {
-  if (state.page !== "exam" || !state.studentToken) return;
+  if (state.page !== "exam" || !state.studentToken || isExamReloadIntent()) return;
   if (pageExit && Date.now() - lastTabViolation < 3000) return;
   lastTabViolation = Date.now();
 
