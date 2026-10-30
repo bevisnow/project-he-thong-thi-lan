@@ -1,4 +1,5 @@
 const $ = (s, root = document) => root.querySelector(s);
+const demoRequested = new URLSearchParams(location.search).get("demo") === "1";
 const esc = (x) =>
   String(x ?? "").replace(
     /[&<>"']/g,
@@ -18,9 +19,11 @@ window.questionTextHtml = questionTextHtml;
 
 const state = {
   base: localStorage.getItem("examBase") || location.origin,
-  token: sessionStorage.getItem("examToken") || "",
-  user: JSON.parse(sessionStorage.getItem("examUser") || "null"),
-  page: sessionStorage.getItem("appLastPage") || "home",
+  token: demoRequested ? "demo-session" : sessionStorage.getItem("examToken") || "",
+  user: demoRequested
+    ? { role: "admin", username: "demo", full_name: "Tài khoản trình diễn" }
+    : JSON.parse(sessionStorage.getItem("examUser") || "null"),
+  page: demoRequested ? "dashboard" : sessionStorage.getItem("appLastPage") || "home",
   subjects: [],
   grades: [],
   topics: [],
@@ -48,7 +51,7 @@ const state = {
   timer: null,
   remaining: 0,
   answers: {},
-  demo: false,
+  demo: demoRequested,
 };
 const typeName = {
   multiple_choice: "Trắc nghiệm",
@@ -61,6 +64,64 @@ const diffName = {
   VD: "Vận dụng",
   VDC: "Vận dụng cao",
 };
+function seedDemoData() {
+  state.subjects = [{ subject_id: 1, subject_name: "Vật lý" }, { subject_id: 2, subject_name: "Toán học" }];
+  state.grades = [10, 11, 12].map((n) => ({ grade_id: n, grade_name: `Khối ${n}` }));
+  state.topics = [{ topic_id: 1, topic_name: "Động học", subject_id: 1, grade_id: 10 }];
+  state.lessons = [{ lesson_id: 1, lesson_name: "Chuyển động thẳng", topic_id: 1 }];
+  state.questions = [
+    { question_id: 101, subject_id: 1, grade_id: 10, question_type: "multiple_choice", difficulty: "NB", is_public: true, is_active: true, can_manage: true, question_text: "Một vật chuyển động đều với vận tốc 5 m/s trong 4 s. Quãng đường vật đi được là bao nhiêu?" },
+    { question_id: 102, subject_id: 1, grade_id: 10, question_type: "multiple_choice", difficulty: "TH", is_public: false, is_active: true, can_manage: true, question_text: "Đồ thị tọa độ theo thời gian của chuyển động thẳng đều có dạng gì?" },
+    { question_id: 103, subject_id: 1, grade_id: 10, question_type: "true_false", difficulty: "TH", is_public: true, is_active: true, can_manage: true, question_text: "Xét các nhận định về vận tốc và tốc độ." },
+    { question_id: 104, subject_id: 2, grade_id: 10, question_type: "short_answer", difficulty: "VD", is_public: false, is_active: true, can_manage: true, question_text: "Một vật đi được 120 m trong 10 s. Tính tốc độ trung bình của vật." },
+  ];
+  state.demoQuestions = [...state.questions];
+  state.questionTotal = state.questions.length;
+  state.exams = [
+    { exam_id: 21, title: "Kiểm tra giữa kỳ I · Vật lý 10", subject_id: 1, grade_id: 10, duration_minutes: 45, status: "ready" },
+    { exam_id: 22, title: "Ôn tập chuyển động thẳng", subject_id: 1, grade_id: 10, duration_minutes: 30, status: "draft" },
+  ];
+  state.sessions = [
+    { session_id: 31, session_name: "Ca sáng · Lớp 10A1", exam_id: 21, access_code: "DEMO2026", start_time: "2026-10-30T08:00:00Z", status: "ongoing" },
+    { session_id: 32, session_name: "Ca chiều · Lớp 10A2", exam_id: 21, access_code: "LANEXAM10", start_time: "2026-10-30T13:30:00Z", status: "scheduled" },
+  ];
+  state.classes = [
+    { class_id: 41, class_name: "10A1", grade_id: 10, school_year: "2026-2027", is_active: true },
+    { class_id: 42, class_name: "10A2", grade_id: 10, school_year: "2026-2027", is_active: true },
+  ];
+  state.users = [
+    { username: "admin_demo", full_name: "Quản trị viên mẫu", role: "admin", is_active: true, created_at: "30/10/2026" },
+    { username: "gv_vatly", full_name: "Nguyễn Minh An", role: "teacher", is_active: true, created_at: "28/10/2026" },
+  ];
+}
+function enterDemoExam() {
+  const questions = [
+    { question: { question_id: 101, question_type: "multiple_choice", question_text: "Một vật chuyển động đều với vận tốc 5 m/s trong 4 s. Quãng đường vật đi được là bao nhiêu?" }, options: [ { option_key: "A", option_text: "9 m" }, { option_key: "B", option_text: "20 m" }, { option_key: "C", option_text: "1,25 m" }, { option_key: "D", option_text: "5 m" } ], media: [] },
+    { question: { question_id: 102, question_type: "true_false", question_text: "Chọn đúng hoặc sai cho từng nhận định về chuyển động thẳng đều." }, options: [ { option_key: "A", option_text: "Vận tốc của vật không đổi theo thời gian." }, { option_key: "B", option_text: "Đồ thị tọa độ theo thời gian là một đường thẳng." } ], media: [] },
+    { question: { question_id: 103, question_type: "short_answer", question_text: "Một vật đi được 120 m trong 10 s. Tính tốc độ trung bình, đơn vị m/s." }, options: [], media: [] },
+  ];
+  state.demo = true;
+  state.token = "demo-session";
+  state.user = { role: "admin", username: "demo", full_name: "Tài khoản trình diễn" };
+  state.studentToken = "demo-student";
+  state.student = { full_name: "Học sinh mẫu", student_code: "HS001", class_name: "10A1" };
+  state.exam = {
+    me: { exam_title: "Kiểm tra giữa kỳ I · Vật lý 10", subject_name: "Vật lý", full_name: "Học sinh mẫu", student_code: "HS001", paper_code: "M02", question_ids: questions.map((x) => x.question.question_id), remaining_seconds: 2700 },
+    questions,
+    grouped: false,
+  };
+  state.answers = {};
+  state.page = "exam";
+  render();
+  startTimer(2700);
+}
+function initDemoQuestionForm() {
+  const topic = $("#formTopic");
+  if (topic) topic.innerHTML = '<option value="1">Động học</option>';
+  const lesson = $("#formLesson");
+  if (lesson) lesson.innerHTML = '<option value="1">Chuyển động thẳng</option>';
+  paintAnswerFields($("#formType")?.value || "multiple_choice");
+}
 function toast(msg) {
   const el = $("#toast");
   el.textContent = msg;
@@ -68,6 +129,7 @@ function toast(msg) {
   setTimeout(() => el.classList.remove("show"), 2800);
 }
 async function api(path, options = {}, token = state.token) {
+  if (state.demo) throw Error("Chế độ trình diễn không kết nối máy chủ thật.");
   const headers = { ...(options.headers || {}) };
   if (token) headers.Authorization = `Bearer ${token}`;
   if (options.body && !(options.body instanceof FormData))
@@ -173,15 +235,16 @@ function appShell(body) {
     ["dashboard", "⌂", "Tổng quan"],
     ["questions", "▦", "Ngân hàng câu hỏi"],
     ["createExam", "＋", "Tạo đề"],
+    ["exams", "▣", "Đề đã tạo"],
     ["shuffle", "⤨", "Trộn đề"],
     ["rooms", "▣", "Phòng thi"],
     ["classes", "▤", "Lớp học"],
     ...(state.user?.role === "admin" ? [["users", "♙", "Tài khoản giáo viên"]] : []),
   ];
-  return `<div class="shell"><aside class="sidebar"><div class="brand"><b>◈ LanExam</b><small>HỆ THỐNG THI TRỰC TUYẾN</small></div><p class="nav-label">KHÔNG GIAN GIÁO VIÊN</p>${nav.map(([id, ic, label]) => `<button class="nav ${state.page === id ? "active" : ""}" data-page="${id}"><span class="ico">${ic}</span>${label}</button>`).join("")}<div class="profile"><div class="avatar">${esc((state.user?.full_name || "GV").slice(0, 2).toUpperCase())}</div><div><strong>${esc(state.user?.full_name || "Giáo viên")}</strong><small>${esc(state.user?.username || "")}</small></div><button class="link-button" data-action="logout" title="Đăng xuất">↗</button></div></aside><main class="main"><header class="topbar"><span>Không gian giáo viên　/　<b>${pageTitle()}</b></span></header><section class="content">${body}</section></main></div>`;
+  return `<div class="shell"><aside class="sidebar"><div class="brand"><b>◈ LanExam</b><small>HỆ THỐNG THI TRỰC TUYẾN</small></div><p class="nav-label">KHÔNG GIAN GIÁO VIÊN</p>${nav.map(([id, ic, label]) => `<button class="nav ${state.page === id ? "active" : ""}" data-page="${id}"><span class="ico">${ic}</span>${label}</button>`).join("")}<div class="profile"><div class="avatar">${esc((state.user?.full_name || "GV").slice(0, 2).toUpperCase())}</div><div><strong>${esc(state.user?.full_name || "Giáo viên")}</strong><small>${esc(state.user?.username || "")}</small></div><button class="link-button" data-action="logout" title="Đăng xuất">↗</button></div></aside><main class="main"><header class="topbar"><span>Không gian giáo viên　/　<b>${pageTitle()}</b></span>${state.demo ? '<button class="secondary" data-page="join">Xem giao diện học sinh</button>' : ""}</header>${state.demo ? '<div class="demo-banner">Bản xem trước · Dữ liệu minh họa · Các thao tác lưu bị tắt</div>' : ""}<section class="content">${body}</section></main></div>`;
 }
 function landing() {
-  return `<main class="landing"><section class="hero"><div class="hero-mark">◈</div><span class="eyebrow">LANEXAM · HỆ THỐNG THI</span><h1>Tạo đề dễ dàng.<br>Thi cử gọn gàng.</h1><p>Nền tảng quản lý câu hỏi, tạo đề và tổ chức các kỳ thi trên mạng nội bộ của trường.</p><small class="hero-foot">Dữ liệu được lưu tại hệ thống của trường.</small></section><section class="entry-side"><span class="eyebrow">BẮT ĐẦU</span><h2>Bạn đang sử dụng hệ thống với vai trò nào?</h2><p>Chọn không gian phù hợp để tiếp tục.</p><button class="choice-card" data-action="teacher"><span class="module-icon">♙</span><span><strong>Giáo viên</strong><small>Quản lý câu hỏi, đề thi và phòng thi</small></span></button><button class="choice-card" data-page="join"><span class="module-icon">✎</span><span><strong>Học sinh</strong><small>Nhập mã phòng và mã học sinh để vào thi</small></span></button></section></main>`;
+  return `<main class="landing"><section class="hero"><div class="hero-mark">◈</div><span class="eyebrow">LANEXAM · HỆ THỐNG THI</span><h1>Tạo đề dễ dàng.<br>Thi cử gọn gàng.</h1><p>Nền tảng quản lý câu hỏi, tạo đề và tổ chức các kỳ thi trên mạng nội bộ của trường.</p><small class="hero-foot">Dữ liệu được lưu tại hệ thống của trường.</small></section><section class="entry-side"><span class="eyebrow">BẮT ĐẦU</span><h2>Bạn đang sử dụng hệ thống với vai trò nào?</h2><p>Chọn không gian phù hợp để tiếp tục.</p><button class="choice-card" data-action="teacher"><span class="module-icon">♙</span><span><strong>Giáo viên</strong><small>Quản lý câu hỏi, đề thi và phòng thi</small></span></button><button class="choice-card" data-page="join"><span class="module-icon">✎</span><span><strong>Học sinh</strong><small>Nhập mã phòng và mã học sinh để vào thi</small></span></button><button class="secondary demo-launch" data-action="demo-start">Xem thử toàn bộ giao diện</button></section></main>`;
 }
 function login() {
   return `<main class="login-wrap"><section class="hero"><div class="hero-mark">◈</div><span class="eyebrow">KHÔNG GIAN GIÁO VIÊN</span><h1>Chào mừng trở lại.</h1><p>Đăng nhập để tiếp tục quản lý ngân hàng câu hỏi, đề thi và phòng thi.</p></section><section class="entry-side"><div class="login-card"><button class="back-link" data-page="home">←　Trang chủ</button><h1>Giáo viên</h1><p>Dùng tài khoản được cấp bởi quản trị viên.</p><form id="loginForm"><label class="field">Địa chỉ máy chủ<input name="base" value="${esc(state.base)}" required placeholder="http://192.168.1.10:8000"></label><label class="field">Tên đăng nhập<input name="username" autocomplete="username" required></label><label class="field">Mật khẩu<input name="password" type="password" autocomplete="current-password" required></label><div id="loginError" class="error"></div><button class="primary" type="submit">Đăng nhập</button></form></div></section></main>`;
@@ -229,6 +292,13 @@ async function loadCatalog() {
   state.grades = g.grades || [];
 }
 async function loadQuestions() {
+  if (state.demo) {
+    const term = $("#qSearch")?.value.trim().toLocaleLowerCase("vi") || "";
+    state.questions = (state.demoQuestions || state.questions).filter((q) => !term || q.question_text.toLocaleLowerCase("vi").includes(term));
+    state.questionTotal = state.questions.length;
+    renderQuestionsTable();
+    return state.questions;
+  }
   const p = new URLSearchParams();
   for (const [key, param] of [
     ["qSubject", "subject_id"],
@@ -398,6 +468,7 @@ function roomManage(s, roster = []) {
   return `<div class="dialog"><div class="dialog-head"><div><span class="eyebrow">QUẢN LÝ CA THI</span><h2>${esc(s.session_name)}</h2></div><button class="mini" data-action="close-modal">✕</button></div><div class="dialog-body"><div class="notice">Mã phòng dành cho học sinh</div><div class="join-code">${esc(s.access_code || "—")}</div><p class="muted">${esc(s.join_url || "")}</p><p class="muted">Trạng thái: <b>${esc(s.status)}</b></p><div class="room-qr"><img src="${esc(s.qr_data_url || "")}" alt="QR vào phòng thi"><a class="secondary" href="${esc(s.qr_data_url || "")}" download="qr-phong-${s.session_id}.png">Tải QR dạng ảnh</a><p class="muted">QR chỉ cho phép vào trong 15 phút từ giờ bắt đầu. Học sinh đã vào tiếp tục làm bài bình thường.</p></div><section class="panel-body"><h3>Mật khẩu phòng</h3><p class="muted">${s.has_password ? "Phòng đang có mật khẩu. Mật khẩu cũ được mã hóa nên không xem lại được; bạn có thể đặt mật khẩu mới." : "Phòng hiện không có mật khẩu."}</p><form id="roomPasswordForm" data-id="${s.session_id}" class="form-grid two"><label class="field">Mật khẩu mới<input name="password" type="password" minlength="8" maxlength="128" required placeholder="Ít nhất 8 ký tự"></label><button class="secondary" style="align-self:end">Đặt mật khẩu mới</button><div id="passwordError" class="error"></div></form></section><div class="form-actions"><a class="secondary" href="${esc(state.base)}/api/templates/students.docx" target="_blank" rel="noreferrer">Tải mẫu danh sách</a><button class="primary" data-action="import-students" data-id="${s.session_id}">Import học sinh</button>${s.status === "completed" || s.status === "ongoing" ? `<button class="secondary" data-action="download-results" data-id="${s.session_id}">Lấy file kết quả</button>` : ""}</div><section class="panel-body"><h3>Danh sách học sinh (${roster.length})</h3>${roster.length ? `<div class="table-wrap"><table><thead><tr><th>MÃ HỌC SINH</th><th>HỌ VÀ TÊN</th><th>LỚP</th><th>TRẠNG THÁI</th></tr></thead><tbody>${roster.map((x) => `<tr><td>${esc(x.student_code)}</td><td>${esc(x.full_name)}</td><td>${esc(x.class_name || "—")}</td><td>${esc({ registered: "Chưa vào thi", in_progress: "Đang làm bài", submitted: "Đã nộp", absent: "Vắng", disqualified: "Bị loại" }[x.status] || x.status)}</td></tr>`).join("")}</tbody></table></div>` : '<p class="muted">Chưa có học sinh trong phòng. Hãy import danh sách.</p>'}</section><div id="rosterResult"></div></div></div>`;
 }
 function joinPage() {
+  if (state.demo) return `<main class="student-stage"><div class="student-box"><div class="demo-banner">Bản xem trước · Không cần kết nối máy chủ</div><button class="back-link" data-page="dashboard">←　Khu vực giáo viên</button><div class="login-card"><span class="eyebrow">KHU VỰC HỌC SINH</span><h1>Vào phòng thi</h1><p>Đây là màn hình nhập thông tin của học sinh. Dùng nút bên dưới để mở bài thi minh họa.</p><label class="field">Mã phòng<input value="DEMO2026" readonly></label><label class="field">Mã học sinh / SBD<input value="HS001" readonly></label><button class="primary" data-action="demo-exam">Vào bài thi mẫu</button></div></div></main>`;
   return `<main class="student-stage"><div class="student-box"><button class="back-link" data-page="home">←　Trang chủ</button><div class="login-card"><h1>Vào phòng thi</h1><p>Nhập địa chỉ máy chủ, mã phòng và mã học sinh được giáo viên cung cấp.</p><form id="joinForm"><label class="field">Máy chủ<select name="serverPreset" id="serverPreset"><option value="custom">Nhập địa chỉ</option><option value="current">Máy chủ hiện tại (${esc(state.base)})</option></select></label><label class="field">Địa chỉ backend<input name="base" id="joinBase" value="${esc(state.base)}" required placeholder="http://192.168.1.10:8000"></label><div class="form-grid two"><label class="field">Mã phòng<input name="access_code" required autocomplete="off" value="${esc(new URLSearchParams(location.search).get("code") || "")}" placeholder="VD: A1B2C3D4E5F60708"></label><label class="field">Mã học sinh / SBD<input name="student_code" required autocomplete="off"></label></div><label class="field">Mật khẩu phòng<input name="password" type="password" placeholder="Nếu phòng có mật khẩu"></label><div id="joinError" class="error"></div><button class="primary">Vào thi</button></form></div></div></main>`;
 }
 function examPage() {
@@ -513,6 +584,18 @@ async function refreshDashboard() {
 async function go(page) {
   state.page = page;
   render();
+  if (state.demo) {
+    if (page === "questions") renderQuestionsTable();
+    if (page === "createExam") {
+      const rows = $("#matrixRows");
+      if (rows && !rows.children.length) {
+        rows.innerHTML = matrixRow();
+        const topic = $(".mTopic", rows);
+        if (topic) topic.innerHTML = '<option value="1">Động học</option>';
+      }
+    }
+    return;
+  }
   if (page === "questions") {
     await loadQuestions();
   }
@@ -666,8 +749,49 @@ function attachPageEvents() {
       await go(page);
       return;
     }
+    if (state.demo) {
+      if (act === "demo-start") {
+        state.demo = true;
+        seedDemoData();
+        state.token = "demo-session";
+        state.user = { role: "admin", username: "demo", full_name: "Tài khoản trình diễn" };
+        state.page = "dashboard";
+        render();
+      } else if (act === "demo-exam") enterDemoExam();
+      else if (act === "close-modal") closeModal();
+      else if (act === "new-question") {
+        state.editing = null;
+        openModal(questionForm());
+        initDemoQuestionForm();
+      } else if (act === "new-room") openModal(roomForm());
+      else if (act === "manage-room") {
+        const room = state.sessions.find((item) => item.session_id === Number(b.dataset.id));
+        if (room) openModal(roomManage(room, [
+          { student_code: "HS001", full_name: "Học sinh mẫu 1", class_name: "10A1", status: "in_progress" },
+          { student_code: "HS002", full_name: "Học sinh mẫu 2", class_name: "10A1", status: "registered" },
+        ]));
+      }
+      else if (act === "logout") {
+        state.page = "home";
+        state.token = "";
+        state.user = null;
+        render();
+      } else if (act === "submit-exam" || act === "confirm-submit") {
+        toast("Bài thi mẫu không gửi hay lưu kết quả.");
+      } else if (act !== "toggle-flag" && act !== "toggle-question-groups") {
+        toast("Các thao tác lưu đã tắt trong bản trình diễn.");
+      }
+      return;
+    }
     try {
-      if (act === "teacher") {
+      if (act === "demo-start") {
+        state.demo = true;
+        seedDemoData();
+        state.token = "demo-session";
+        state.user = { role: "admin", username: "demo", full_name: "Tài khoản trình diễn" };
+        state.page = "dashboard";
+        render();
+      } else if (act === "teacher") {
         state.page = "login";
         render();
       } else if (act === "logout") {
@@ -906,6 +1030,7 @@ function attachPageEvents() {
     }
   };
   const change = async (e) => {
+    if (state.demo) return;
     try {
       if (e.target.id === "qSubject" || e.target.id === "qGrade") {
         const topic = $("#qTopic"),
@@ -948,6 +1073,10 @@ function attachPageEvents() {
   };
   const submit = async (e) => {
     e.preventDefault();
+    if (state.demo) {
+      toast("Các thao tác lưu đã tắt trong bản trình diễn.");
+      return;
+    }
     const form = e.target;
     try {
       if (form.id === "loginForm") {
@@ -1403,9 +1532,10 @@ async function createRoom(form) {
     </div>`);
   render();
 }
+if (state.demo) seedDemoData();
 attachPageEvents();
 render();
-if (state.token) {
+if (state.token && !state.demo) {
   state.studentToken = "";
   sessionStorage.removeItem("studentToken");
   sessionStorage.removeItem("examReloadIntentUntil");

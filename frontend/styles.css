@@ -115,7 +115,7 @@ button:disabled {
   white-space: nowrap;
 }
 .profile small {
-  font-size: 11px;
+  font-size: 14px;
   color: var(--muted);
   margin-top: 3px;
 }
@@ -525,9 +525,9 @@ td {
   color: var(--accent);
 }
 .hero-foot {
-  margin-top: 38px;
+  margin-top: 0;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 14px;
 }
 .entry-side {
   padding: clamp(25px, 6vw, 80px);
@@ -928,4 +928,23 @@ td {
   display: inline-flex;
   align-items: center;
   gap: 5px;
+}
+.demo-banner {
+  margin: 12px 24px 0;
+  padding: 10px 14px;
+  color: #654400;
+  background: #fff4d6;
+  border: 1px solid #f3d58a;
+  border-radius: 10px;
+  font-size: 14px;
+}
+
+.demo-launch {
+  width: 100%;
+  margin-top: 14px;
+}
+
+.exam-demo-banner {
+  grid-column: 1 / -1;
+  margin: 0;
 }

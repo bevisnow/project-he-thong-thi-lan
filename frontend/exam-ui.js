@@ -50,7 +50,7 @@ async function saveOneAnswer(question) {
   const answer = readExamAnswer(question);
 
   if (answer) {
-    await api(
+    if (!state.demo) await api(
       "/api/exam/answers",
       {
         method: "PUT",
@@ -60,7 +60,7 @@ async function saveOneAnswer(question) {
     );
     state.answers[id] = answer;
   } else if (state.answers[id] !== undefined) {
-    await api(
+    if (!state.demo) await api(
       "/api/exam/answers",
       {
         method: "PUT",
@@ -276,7 +276,9 @@ function examPage() {
     .join("");
 
   return (
-    '<main class="exam-shell"><aside class="exam-nav panel">' +
+    '<main class="exam-shell">' +
+    (state.demo ? '<div class="demo-banner exam-demo-banner">Bản xem trước · Câu trả lời và kết quả chỉ tồn tại trong phiên này</div>' : '') +
+    '<aside class="exam-nav panel">' +
     '<div class="exam-nav-title">Câu hỏi <span>' +
     questions.length +
     " câu</span></div>" +
@@ -453,6 +455,7 @@ function isExamReloadIntent() {
 }
 
 async function reportTabViolation(pageExit = false) {
+  if (state.demo) return;
   if (state.page !== "exam" || !state.studentToken || isExamReloadIntent()) return;
   if (pageExit && Date.now() - lastTabViolation < 3000) return;
   lastTabViolation = Date.now();
