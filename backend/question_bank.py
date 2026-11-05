@@ -459,6 +459,30 @@ def docx_template(kind: str):
     )
 
 
+@router.get("/templates/questions.docx")
+def question_docx_template():
+    data = docx_import.table_docx(
+        ["STT", "Mã", "Nội dung", "Đáp án", "Loại câu", "Mức độ"],
+        [
+            ["1", "TN01", "2 + 3 = ?\nA. 4\nB. 5\nC. 6\nD. 7", "B", "TN", "NB"],
+            [
+                "2",
+                "DS01",
+                "Số 4 là số chẵn.\na) 4 chia hết cho 2\nb) 4 là số nguyên tố\nc) 4 lớn hơn 3\nd) 4 là số lẻ",
+                "ĐSĐS",
+                "ĐS",
+                "TH",
+            ],
+            ["3", "TLN01", "Căn bậc hai số học của 25 bằng bao nhiêu?", "5", "ĐT", "NB"],
+        ],
+    )
+    return Response(
+        data,
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={"Content-Disposition": 'attachment; filename="mau_cau_hoi.docx"'},
+    )
+
+
 @router.post("/questions/import")
 def import_questions(
     subject_id: int,

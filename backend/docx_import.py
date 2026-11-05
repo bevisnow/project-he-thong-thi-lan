@@ -356,7 +356,7 @@ def pack_docx(document):
 
 
 def table_docx(headers, sample):
-    """Tạo DOCX đơn giản có một bảng tiêu đề và một dòng mẫu."""
+    """Tạo DOCX đơn giản có một bảng tiêu đề và một hoặc nhiều dòng mẫu."""
     ET.register_namespace("w", W[1:-1])
     q = lambda name: W + name
     document = ET.Element(q("document"))
@@ -371,7 +371,8 @@ def table_docx(headers, sample):
     grid = ET.SubElement(table, q("tblGrid"))
     for _ in headers:
         ET.SubElement(grid, q("gridCol"), {q("w"): "2200"})
-    for values in (headers, sample):
+    samples = sample if sample and isinstance(sample[0], (list, tuple)) else [sample]
+    for values in (headers, *samples):
         tr = ET.SubElement(table, q("tr"))
         for value in values:
             tc = ET.SubElement(tr, q("tc"))
