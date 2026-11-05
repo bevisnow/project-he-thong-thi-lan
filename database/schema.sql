@@ -1,5 +1,12 @@
 PRAGMA foreign_keys = ON;
 
+CREATE TABLE IF NOT EXISTS auth_refresh_sessions (
+    jti TEXT PRIMARY KEY,
+    subject TEXT NOT NULL,
+    expires_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_auth_refresh_subject ON auth_refresh_sessions(subject);
+
 -- 1. USERS
 CREATE TABLE users (
     user_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -10,6 +17,8 @@ CREATE TABLE users (
         CHECK(role IN ('admin', 'teacher')),
     is_active INTEGER NOT NULL DEFAULT 1
         CHECK(is_active IN (0, 1)),
+    failed_login_count INTEGER NOT NULL DEFAULT 0,
+    locked_at TEXT,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -28,6 +37,8 @@ CREATE TABLE grades (
     is_active INTEGER NOT NULL DEFAULT 1
         CHECK(is_active IN (0, 1))
 );
+
+INSERT OR IGNORE INTO grades (grade_name) VALUES ('10'), ('11'), ('12');
 
 -- 4. TOPICS
 CREATE TABLE topics (
@@ -73,11 +84,16 @@ CREATE TABLE classes (
     class_name TEXT NOT NULL,
     grade_id INTEGER NOT NULL,
     school_year TEXT,
+    created_by INTEGER,
     is_active INTEGER NOT NULL DEFAULT 1
         CHECK(is_active IN (0, 1)),
 
     FOREIGN KEY(grade_id)
         REFERENCES grades(grade_id)
+        ON DELETE RESTRICT,
+
+    FOREIGN KEY(created_by)
+        REFERENCES users(user_id)
         ON DELETE RESTRICT,
 
     UNIQUE(class_name, school_year)
@@ -88,6 +104,7 @@ CREATE TABLE students (
     student_id INTEGER PRIMARY KEY AUTOINCREMENT,
     student_code TEXT NOT NULL UNIQUE,
     full_name TEXT NOT NULL,
+    date_of_birth TEXT,
     class_id INTEGER NOT NULL,
     is_active INTEGER NOT NULL DEFAULT 1
         CHECK(is_active IN (0, 1)),
@@ -121,6 +138,9 @@ CREATE TABLE questions (
 
     is_active INTEGER NOT NULL DEFAULT 1
         CHECK(is_active IN (0, 1)),
+
+    is_public INTEGER NOT NULL DEFAULT 0
+        CHECK(is_public IN (0, 1)),
 
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT,
@@ -204,6 +224,9 @@ CREATE TABLE exams (
     exam_id INTEGER PRIMARY KEY AUTOINCREMENT,
     title TEXT NOT NULL
         CHECK(length(trim(title)) > 0),
+
+    supervising_authority TEXT NOT NULL DEFAULT '',
+    school_name TEXT NOT NULL DEFAULT '',
 
     subject_id INTEGER NOT NULL,
     grade_id INTEGER NOT NULL,
@@ -313,6 +336,10 @@ CREATE TABLE exam_sessions (
     session_name TEXT NOT NULL,
     version_id INTEGER NOT NULL,
 
+    paper_code_prefix TEXT NOT NULL DEFAULT '',
+    paper_code_length INTEGER NOT NULL DEFAULT 3 CHECK(paper_code_length > 0),
+    paper_variant_count INTEGER NOT NULL DEFAULT 1 CHECK(paper_variant_count > 0),
+
     access_code TEXT UNIQUE,
     password_hash TEXT,
 
@@ -374,6 +401,15 @@ CREATE TABLE session_students (
         ON DELETE RESTRICT,
 
     UNIQUE(session_id, student_id)
+);
+
+CREATE TABLE student_room_login_attempts (
+    session_student_id INTEGER PRIMARY KEY,
+    failed_attempts INTEGER NOT NULL DEFAULT 0,
+    locked_until TEXT,
+    FOREIGN KEY(session_student_id)
+        REFERENCES session_students(session_student_id)
+        ON DELETE CASCADE
 );
 
 -- 18. ANSWERS
