@@ -1451,10 +1451,9 @@ def active_ctx(c, ssid):
 
 def current_student(cred=Depends(P.bearer_scheme)):
     try:
-        sub = jwt.decode(cred.credentials, P.SECRET_KEY, algorithms=[P.ALGORITHM])[
-            "sub"
-        ]
-        if not sub.startswith("ss:"):
+        payload = jwt.decode(cred.credentials, P.SECRET_KEY, algorithms=[P.ALGORITHM])
+        sub = payload["sub"]
+        if payload.get("token_type") != "access" or not sub.startswith("ss:"):
             raise ValueError
         return int(sub[3:])
     except (jwt.InvalidTokenError, KeyError, ValueError):
@@ -1466,7 +1465,7 @@ def current_student(cred=Depends(P.bearer_scheme)):
 
 
 @router.post("/exam/join")
-def join(d: Join):
+def join(d: Join, request: Request, response: Response):
     with db() as c:
         s = c.execute(
             """
@@ -1596,12 +1595,7 @@ def join(d: Join):
             )
 
         r = active_ctx(c, ssid)
-        exp = deadline(
-            r["started_at"], r["duration_minutes"], r["end_time"]
-        ) + timedelta(minutes=10)
-        token = jwt.encode(
-            {"sub": f"ss:{ssid}", "exp": exp}, P.SECRET_KEY, algorithm=P.ALGORITHM
-        )
+        token = P.issue_token_pair(c, f"ss:{ssid}", {}, response, request)
 
         return {
             "access_token": token,

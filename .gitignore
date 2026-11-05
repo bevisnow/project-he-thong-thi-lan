@@ -3,6 +3,13 @@
 *.sqlite
 *.sqlite3
 *.sqbpro
+.env
+.env.*
+!.env.example
+*.pem
+*.key
 # Python cache
 __pycache__/
 *.py[cod]
+/backend/certs/
+/security/

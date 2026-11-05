@@ -1,7 +1,11 @@
 @echo off
 cd /d "%~dp0"
 
-for /f "usebackq tokens=1,* delims==" %%A in ("%~dp0.env") do set "%%A=%%B"
+if not exist "backend\.env" (
+    echo Khong tim thay backend\.env. Hay chay setup.bat truoc.
+    pause
+    exit /b 1
+)
 
 cd /d "%~dp0backend"
 

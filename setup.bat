@@ -22,8 +22,8 @@ if errorlevel 1 (
     exit /b 1
 )
 
-if not exist ".env" (
-    for /f "delims=" %%S in ('".venv\Scripts\python.exe" -c "import secrets; print(secrets.token_urlsafe(48))"') do echo EXAM_JWT_SECRET=%%S> ".env"
+if not exist "backend\.env" (
+    for /f "delims=" %%S in ('".venv\Scripts\python.exe" -c "import secrets; print(secrets.token_urlsafe(48))"') do echo EXAM_JWT_SECRET=%%S> "backend\.env"
 )
 
 echo Cai dat hoan tat. Xem HUONG_DAN.md de chay server.

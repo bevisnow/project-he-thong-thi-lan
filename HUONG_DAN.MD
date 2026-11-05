@@ -13,7 +13,7 @@
 1. Cài Python 3.13. Khi cài, chọn **Add Python to PATH**.
 2. Mở thư mục dự án đã giải nén.
 3. Bấm đúp `setup.bat` và chờ cài đặt hoàn tất. Máy cần Internet ở bước này.
-4. Script tạo thư mục `.venv` để chứa thư viện riêng của dự án và tạo file `.env` để lưu khóa JWT trên máy chủ.
+4. Script tạo thư mục `.venv` để chứa thư viện riêng của dự án và tạo `backend\.env` để lưu khóa JWT trên máy chủ. Backend tự đọc file này khi khởi động; không cần nhập khóa vào cửa sổ lệnh.
 
 Chỉ cần chạy `setup.bat` lại khi cài trên máy mới hoặc khi quản trị viên cập nhật requirements.
 
@@ -54,9 +54,9 @@ Giáo viên đăng nhập bằng tài khoản do quản trị viên cấp. Học
 ## 6. Những lần sử dụng tiếp theo
 
 - Trên máy chủ, chỉ cần chạy `chay-server.bat`; không cần cài lại thư viện.
-- Không xóa `.env`: thay khóa sẽ làm các phiên đăng nhập hiện tại hết hiệu lực.
+- Không xóa `backend\.env`: thay khóa JWT sẽ làm các phiên đăng nhập hiện tại hết hiệu lực.
 - Không xóa `database\data.db`: đây là dữ liệu hệ thống. Sao lưu file này khi server đã tắt.
-- Không gửi `.env`, `database\data.db` hoặc dữ liệu học sinh lên GitHub hay cho người không có quyền.
+- Không gửi `backend\.env`, `database\data.db` hoặc dữ liệu học sinh lên GitHub hay cho người không có quyền.
 
 ## 7. Lỗi thường gặp
 
@@ -69,4 +69,4 @@ Giáo viên đăng nhập bằng tài khoản do quản trị viên cấp. Học
 
 ## 8. Lưu ý bảo mật
 
-Server đang dùng HTTP trên mạng LAN. Chỉ sử dụng trên mạng trường học đáng tin cậy; không mở cổng 8000 ra Internet công cộng. File `.env` chứa khóa ký token, cần giữ riêng trên máy chủ.
+Server đang dùng HTTP trên mạng LAN. Chỉ sử dụng trên mạng trường học đáng tin cậy; không mở cổng 8000 ra Internet công cộng. File `backend\.env` chứa khóa ký token, cần giữ riêng trên máy chủ.

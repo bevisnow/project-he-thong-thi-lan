@@ -6,15 +6,17 @@ import jwt
 import os
 import secrets
 import time
+import dotenv
+
+from dotenv import load_dotenv
 from collections import deque
 from threading import Lock
-
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pwdlib import PasswordHash
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 from contextlib import asynccontextmanager
-from fastapi import HTTPException
+from fastapi import HTTPException, Request
 from datetime import date, datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 from typing import Literal
@@ -26,6 +28,7 @@ from fastapi import Depends
 password_hash = PasswordHash.recommended()
 bearer_scheme = HTTPBearer()
 
+load_dotenv(Path(__file__).with_name(".env"))
 
 class UserCreate(BaseModel):
     username: str = Field(min_length=3, max_length=50)
@@ -89,7 +92,10 @@ SECRET_KEY = os.environ.get("EXAM_JWT_SECRET", "")
 if len(SECRET_KEY) < 32:
     raise RuntimeError("EXAM_JWT_SECRET must be set to a random value of at least 32 characters")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = 20
+REFRESH_TOKEN_EXPIRE_DAYS = 7
+REFRESH_COOKIE = "exam_refresh"
+REFRESH_COOKIE_PATH = "/api/auth"
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 DB_PATH = BASE_DIR / "database" / "data.db"
@@ -160,6 +166,24 @@ def ensure_student_room_login_attempts():
         conn.close()
 
 
+def ensure_refresh_sessions_table():
+    if not DB_PATH.is_file():
+        return
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS auth_refresh_sessions (
+                jti TEXT PRIMARY KEY,
+                subject TEXT NOT NULL,
+                expires_at TEXT NOT NULL
+            )
+        """)
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_auth_refresh_subject ON auth_refresh_sessions(subject)")
+        conn.commit()
+    finally:
+        conn.close()
+
+
 def ensure_teacher_login_columns():
     if not DB_PATH.is_file():
         return
@@ -193,6 +217,24 @@ def ensure_class_owner_column():
         if columns and "created_by" not in columns:
             conn.execute(
                 "ALTER TABLE classes ADD COLUMN created_by INTEGER REFERENCES users(user_id)"
+            )
+            conn.commit()
+    finally:
+        conn.close()
+
+
+def ensure_default_grades():
+    if not DB_PATH.is_file():
+        return
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        exists = conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='grades'"
+        ).fetchone()
+        if exists:
+            conn.executemany(
+                "INSERT OR IGNORE INTO grades (grade_name) VALUES (?)",
+                [("10",), ("11",), ("12",)],
             )
             conn.commit()
     finally:
@@ -246,9 +288,11 @@ async def lifespan(app: FastAPI):
     ensure_student_date_of_birth_column()
     ensure_exam_settings_columns()
     ensure_student_room_login_attempts()
+    ensure_refresh_sessions_table()
     ensure_teacher_login_columns()
     ensure_class_owner_column()
     ensure_question_visibility_column()
+    ensure_default_grades()
     rotate_short_room_codes()
     task = asyncio.create_task(auto_submit_loop())
     try:
@@ -303,14 +347,12 @@ async def add_security_headers(request, call_next):
     if bucket:
         global _rate_limit_checks
         limit, window = _RATE_LIMITS[bucket]
-        # Use the ASGI peer address; do not trust a client-supplied X-Forwarded-For header.
         client_ip = request.client.host if request.client else "unknown"
         key = (client_ip, bucket)
         now = time.monotonic()
         with _rate_limit_lock:
             hits = _rate_limit_hits.get(key)
             if hits is None:
-                # shortcut: cap process-local IP buckets at 4,096; use a shared limiter when scaling workers.
                 if len(_rate_limit_hits) >= 4096:
                     _rate_limit_hits.pop(next(iter(_rate_limit_hits)))
                 hits = _rate_limit_hits[key] = deque()
@@ -380,8 +422,7 @@ def get_db():
 
 
 def create_access_token(data: dict):
-    to_encode = data.copy()
-
+    to_encode = {**data, "token_type": "access"}
     expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
 
     to_encode.update({"exp": expire})
@@ -389,6 +430,36 @@ def create_access_token(data: dict):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
     return encoded_jwt
+
+
+def issue_token_pair(conn, subject: str, claims: dict, response: Response, request: Request):
+    access_token = create_access_token({"sub": subject, **claims})
+    jti = secrets.token_urlsafe(32)
+    now = datetime.now(timezone.utc)
+    expires_at = now + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    conn.execute(
+        "DELETE FROM auth_refresh_sessions WHERE expires_at<=?",
+        (now.strftime("%Y-%m-%d %H:%M:%S"),),
+    )
+    refresh_token = jwt.encode(
+        {"sub": subject, "jti": jti, "token_type": "refresh", "exp": expires_at},
+        SECRET_KEY,
+        algorithm=ALGORITHM,
+    )
+    conn.execute(
+        "INSERT INTO auth_refresh_sessions (jti, subject, expires_at) VALUES (?, ?, ?)",
+        (jti, subject, expires_at.strftime("%Y-%m-%d %H:%M:%S")),
+    )
+    response.set_cookie(
+        REFRESH_COOKIE,
+        refresh_token,
+        max_age=REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
+        httponly=True,
+        secure=request.url.scheme == "https",
+        samesite="strict",
+        path=REFRESH_COOKIE_PATH,
+    )
+    return access_token
 
 
 def get_current_user(
@@ -403,6 +474,8 @@ def get_current_user(
 
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        if payload.get("token_type") != "access":
+            raise credentials_exception
 
         user_id = payload.get("sub")
 
@@ -457,6 +530,34 @@ def auto_submit_expired_students():
     try:
         now = datetime.now(timezone.utc)
         now_text = now.strftime("%Y-%m-%d %H:%M:%S")
+
+        opened_sessions = conn.execute(
+            """
+            UPDATE exam_sessions
+            SET status='ongoing'
+            WHERE status='scheduled'
+              AND start_time IS NOT NULL
+              AND start_time<=?
+              AND (end_time IS NULL OR end_time>?)
+            """,
+            (now_text, now_text),
+        ).rowcount
+        missed_sessions = conn.execute(
+            "SELECT session_id FROM exam_sessions "
+            "WHERE status='scheduled' AND end_time IS NOT NULL AND end_time<=?",
+            (now_text,),
+        ).fetchall()
+        for (session_id,) in missed_sessions:
+            conn.execute(
+                "UPDATE session_students SET status='absent' "
+                "WHERE session_id=? AND status='registered'",
+                (session_id,),
+            )
+        conn.execute(
+            "UPDATE exam_sessions SET status='completed' "
+            "WHERE status='scheduled' AND end_time IS NOT NULL AND end_time<=?",
+            (now_text,),
+        )
 
         rows = conn.execute("""
             SELECT
@@ -557,10 +658,10 @@ def auto_submit_expired_students():
 
         conn.commit()
 
-        if expired_ids or expired_sessions:
+        if opened_sessions or missed_sessions or expired_ids or expired_sessions:
             print(
-                f"Đã tự động chốt {len(expired_ids)} bài và "
-                f"{len(expired_sessions)} phòng thi hết giờ.",
+                f"Đã tự mở {opened_sessions} phòng, bỏ lỡ {len(missed_sessions)} lịch, "
+                f"tự chốt {len(expired_ids)} bài và {len(expired_sessions)} phòng hết giờ.",
                 flush=True,
             )
 
@@ -575,7 +676,7 @@ def auto_submit_expired_students():
 @app.get("/")
 def home():
     return FileResponse(
-        FRONTEND_DIR / "index.html", headers={"Cache-Control": "no-store"}
+        FRONTEND_DIR / "home.html", headers={"Cache-Control": "no-store"}
     )
 
 
@@ -722,7 +823,7 @@ def create_user(user: UserCreate):
 
 
 @app.post("/api/login")
-def logion(user: UserLogin):
+def logion(user: UserLogin, request: Request, response: Response):
     conn = get_db()
 
     try:
@@ -759,8 +860,8 @@ def logion(user: UserLogin):
                 )
 
             conn.execute(
-                "UPDATE users SET failed_login_count=0, locked_at=NULL, "
-                "is_active=1 WHERE user_id=?",
+                "UPDATE users SET failed_login_count=0, locked_at=NULL "
+                "WHERE user_id=?",
                 (row["user_id"],),
             )
 
@@ -800,9 +901,14 @@ def logion(user: UserLogin):
         )
         conn.commit()
 
-        access_token = create_access_token(
-            data={"sub": str(row["user_id"]), "role": row["role"]}
+        access_token = issue_token_pair(
+            conn,
+            str(row["user_id"]),
+            {"role": row["role"]},
+            response,
+            request,
         )
+        conn.commit()
 
         return {
             "status": "ok",
@@ -819,6 +925,112 @@ def logion(user: UserLogin):
 
     finally:
         conn.close()
+
+
+@app.post("/api/auth/refresh")
+def refresh_access_token(request: Request, response: Response):
+    token = request.cookies.get(REFRESH_COOKIE)
+    credentials_exception = HTTPException(status_code=401, detail="Phiên đăng nhập đã hết hạn")
+    try:
+        payload = jwt.decode(token or "", SECRET_KEY, algorithms=[ALGORITHM])
+        subject, jti = payload.get("sub"), payload.get("jti")
+        if payload.get("token_type") != "refresh" or not subject or not jti:
+            raise credentials_exception
+    except jwt.InvalidTokenError:
+        response.delete_cookie(REFRESH_COOKIE, path=REFRESH_COOKIE_PATH)
+        raise credentials_exception
+
+    conn = get_db()
+    try:
+        conn.execute("BEGIN IMMEDIATE")
+        session = conn.execute(
+            "SELECT subject, expires_at FROM auth_refresh_sessions WHERE jti=?", (jti,)
+        ).fetchone()
+        now = datetime.now(timezone.utc)
+        if (
+            not session
+            or session["subject"] != subject
+            or datetime.strptime(
+                session["expires_at"], "%Y-%m-%d %H:%M:%S"
+            ).replace(tzinfo=timezone.utc) <= now
+        ):
+            conn.rollback()
+            response.delete_cookie(REFRESH_COOKIE, path=REFRESH_COOKIE_PATH)
+            raise credentials_exception
+
+        claims = {}
+        if subject.startswith("ss:"):
+            try:
+                ssid = int(subject[3:])
+            except ValueError:
+                raise credentials_exception
+            student = conn.execute(
+                """
+                SELECT ss.status, es.status AS session_status, ss.started_at,
+                       e.duration_minutes, es.end_time
+                FROM session_students ss
+                JOIN exam_sessions es ON es.session_id=ss.session_id
+                JOIN exams e ON e.exam_id=es.exam_id
+                WHERE ss.session_student_id=?
+                """,
+                (ssid,),
+            ).fetchone()
+            if (
+                not student
+                or student["status"] != "in_progress"
+                or student["session_status"] != "ongoing"
+            ):
+                raise credentials_exception
+            deadline = datetime.strptime(
+                student["started_at"], "%Y-%m-%d %H:%M:%S"
+            ).replace(tzinfo=timezone.utc) + timedelta(
+                minutes=student["duration_minutes"]
+            )
+            if student["end_time"]:
+                deadline = min(
+                    deadline,
+                    datetime.strptime(
+                        student["end_time"], "%Y-%m-%d %H:%M:%S"
+                    ).replace(tzinfo=timezone.utc),
+                )
+            if now >= deadline:
+                raise credentials_exception
+        else:
+            teacher = conn.execute(
+                "SELECT role FROM users WHERE user_id=? AND is_active=1", (subject,)
+            ).fetchone()
+            if not teacher:
+                raise credentials_exception
+            claims = {"role": teacher["role"]}
+
+        conn.execute("DELETE FROM auth_refresh_sessions WHERE jti=?", (jti,))
+        access_token = issue_token_pair(conn, subject, claims, response, request)
+        conn.commit()
+        return {"access_token": access_token, "token_type": "bearer"}
+    except HTTPException:
+        conn.rollback()
+        response.delete_cookie(REFRESH_COOKIE, path=REFRESH_COOKIE_PATH)
+        raise
+    finally:
+        conn.close()
+
+
+@app.post("/api/auth/logout", status_code=204)
+def logout(request: Request, response: Response):
+    token = request.cookies.get(REFRESH_COOKIE)
+    if token:
+        try:
+            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+            if payload.get("token_type") == "refresh" and payload.get("jti"):
+                conn = get_db()
+                try:
+                    conn.execute("DELETE FROM auth_refresh_sessions WHERE jti=?", (payload["jti"],))
+                    conn.commit()
+                finally:
+                    conn.close()
+        except jwt.InvalidTokenError:
+            pass
+    response.delete_cookie(REFRESH_COOKIE, path=REFRESH_COOKIE_PATH)
 
 
 @app.get("/api/subjects", dependencies=[Depends(get_current_user)])
@@ -1034,36 +1246,10 @@ def get_grade_detail(grade_id: int):
 
 @app.post("/api/grades", status_code=201, dependencies=[Depends(get_current_user)])
 def create_grade(grade: GradeCreate):
-    grade_name = grade.grade_name.strip()
-
-    if not grade_name:
-        raise HTTPException(status_code=422, detail="tên khối lớp không được để trống")
-
-    conn = get_db()
-
-    try:
-        cursor = conn.execute(
-            """
-            INSERT INTO grades (grade_name)
-            VALUES (?)
-        """,
-            (grade_name,),
-        )
-
-        conn.commit()
-
-        return {
-            "message": "tạo khối lớp thành công",
-            "grade_id": cursor.lastrowid,
-            "grade_name": grade_name,
-        }
-
-    except sqlite3.IntegrityError:
-        conn.rollback()
-        raise HTTPException(status_code=409, detail="tên khối lớp đã tồn tại")
-
-    finally:
-        conn.close()
+    raise HTTPException(
+        status_code=409,
+        detail="Danh sách khối được cố định là 10, 11, 12; không thể thêm khối mới.",
+    )
 
 
 @app.put("/api/grades/{grade_id}", dependencies=[Depends(get_current_user)])
