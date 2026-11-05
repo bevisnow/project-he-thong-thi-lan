@@ -1,0 +1,45 @@
+cd "nơi bạn lưu dự án"
+
+@'
+import getpass
+import sqlite3
+from pathlib import Path
+from pwdlib import PasswordHash
+
+db = Path("database/data.db")
+if not db.is_file():
+    raise SystemExit("Không tìm thấy database/data.db")
+
+username = input("Tên đăng nhập admin mới: ").strip()
+full_name = input("Họ và tên: ").strip()
+password = getpass.getpass("Mật khẩu (8-128 ký tự): ")
+confirm = getpass.getpass("Nhập lại mật khẩu: ")
+
+if not 3 <= len(username) <= 50:
+    raise SystemExit("Tên đăng nhập cần dài 3-50 ký tự.")
+if not full_name or len(full_name) > 100:
+    raise SystemExit("Họ tên không được để trống và tối đa 100 ký tự.")
+if not 8 <= len(password) <= 128:
+    raise SystemExit("Mật khẩu cần dài 8-128 ký tự.")
+if password != confirm:
+    raise SystemExit("Hai mật khẩu không khớp.")
+
+conn = sqlite3.connect(db)
+try:
+    exists = conn.execute(
+        "SELECT 1 FROM users WHERE username = ?", (username,)
+    ).fetchone()
+    if exists:
+        raise SystemExit("Tên đăng nhập đã tồn tại; hãy chọn tên khác.")
+
+    password_hash = PasswordHash.recommended().hash(password)
+    conn.execute(
+        "INSERT INTO users (username, password_hash, full_name, role, is_active) "
+        "VALUES (?, ?, ?, 'admin', 1)",
+        (username, password_hash, full_name),
+    )
+    conn.commit()
+    print("Đã tạo tài khoản admin.")
+finally:
+    conn.close()
+'@ | .\.venv\Scripts\python.exe -
