@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Trộn đề · LanExam</title>
+    <link rel="stylesheet" href="/styles.css?v=20261105-usertable1">
+  </head>
+  <body data-page="shuffle">
+    <div id="app"></div>
+    <div id="toast" role="status" aria-live="polite"></div>
+    <div id="modal" class="veil hidden"></div>
+
+    <template id="pageTemplate">
+      <div class="heading">
+        <div>
+          <span class="eyebrow">MÃ ĐỀ VÀ TRỘN</span>
+          <h1>Trộn đề</h1>
+          <p>Chọn đề gốc, số lượng phiên bản và cách xáo câu hỏi, phương án.</p>
+        </div>
+      </div>
+
+      <div class="panel shuffle-settings">
+        <div class="panel-head">
+          <div>
+            <h2>Thiết lập mã đề</h2>
+            <p>Mỗi học sinh được chia vào một mã trong số phiên bản đã chọn.</p>
+          </div>
+          <span class="pill">CẤU HÌNH PHÒNG</span>
+        </div>
+
+        <div class="panel-body">
+          <div class="form-grid two">
+            <label class="field">
+              Tiền tố mã đề
+              <input id="paperCodePrefix" maxlength="8" value="{{PAPER_CODE_PREFIX}}" placeholder="VD: M">
+            </label>
+            <label class="field">
+              Độ dài phần số
+              <input id="paperCodeLength" type="number" min="1" max="8" value="{{PAPER_CODE_LENGTH}}">
+            </label>
+            <label class="field">
+              Số đề muốn trộn
+              <input id="paperVariantCount" type="number" min="1" max="100" value="{{PAPER_VARIANT_COUNT}}">
+            </label>
+          </div>
+
+          <div class="spacer"></div>
+
+          <label class="field">
+            Đề thi
+            <select id="shuffleExam">
+              <option value="">Chọn đề đã sẵn sàng</option>
+              {{EXAM_OPTIONS}}
+            </select>
+          </label>
+
+          <div class="spacer"></div>
+
+          <label class="inline-check">
+            <input type="checkbox" id="shuffleQuestions" {{SHUFFLE_QUESTIONS_CHECKED}}>
+            Trộn thứ tự câu hỏi
+          </label>
+
+          <div class="spacer"></div>
+
+          <label class="inline-check">
+            <input type="checkbox" id="shuffleOptions" {{SHUFFLE_OPTIONS_CHECKED}}>
+            Trộn thứ tự phương án trắc nghiệm
+          </label>
+
+          <div class="spacer"></div>
+
+          <div class="notice">
+            Mã đề được gán lần lượt theo danh sách học sinh nhập vào phòng. Hệ thống giữ đề gốc để đối chiếu kết quả.
+          </div>
+          <button class="primary" data-action="use-shuffle">Dùng cấu hình này khi tạo phòng</button>
+          <div id="shuffleInfo" class="muted"></div>
+        </div>
+      </div>
+    </template>
+
+    <script src="/app.js?v=20261105-usertable1" defer></script>
+    <script src="/exam-ui.js?v=20261105-usertable1" defer></script>
+    <script src="/room-config.js?v=20261105-usertable1" defer></script>
+  </body>
+</html>

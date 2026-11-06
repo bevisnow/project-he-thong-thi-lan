@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Tổng quan · LanExam</title>
+    <link rel="stylesheet" href="/styles.css?v=20261105-usertable1">
+  </head>
+  <body data-page="dashboard">
+    <div id="app"></div>
+    <div id="toast" role="status" aria-live="polite"></div>
+    <div id="modal" class="veil hidden"></div>
+
+    <template id="pageTemplate">
+      <div class="heading">
+        <div>
+          <span class="eyebrow">TỔNG QUAN</span>
+          <h1>Xin chào, {{FULL_NAME}}</h1>
+          <p>Chọn một công việc để bắt đầu.</p>
+        </div>
+      </div>
+
+      <div class="cards">
+        <div class="stat">
+          <small>Câu hỏi đang dùng</small>
+          <strong>{{QUESTION_TOTAL}}</strong>
+          <p>Trong ngân hàng câu hỏi</p>
+        </div>
+        <div class="stat">
+          <small>Đề đã tạo</small>
+          <strong>{{EXAM_TOTAL}}</strong>
+          <p>Sẵn sàng mở phòng thi</p>
+        </div>
+        <div class="stat">
+          <small>Phòng đang thi</small>
+          <strong>{{SESSION_TOTAL}}</strong>
+          <p>Có thể theo dõi trực tiếp</p>
+        </div>
+      </div>
+
+      <div class="module-grid">
+        <button class="module-card" data-page="questions">
+          <h2>Ngân hàng câu hỏi</h2>
+          <p>Tìm kiếm, thêm và chỉnh sửa câu hỏi theo môn, khối, chủ đề.</p>
+          <span>Mở mục này</span>
+        </button>
+        <button class="module-card" data-page="createExam">
+          <h2>Tạo đề</h2>
+          <p>Lập ma trận, sinh đề gốc và xem trước nội dung.</p>
+          <span>Mở mục này</span>
+        </button>
+        <button class="module-card" data-page="shuffle">
+          <h2>Trộn đề</h2>
+          <p>Thiết lập trộn câu hỏi và lựa chọn cho phòng thi.</p>
+          <span>Mở mục này</span>
+        </button>
+        <button class="module-card" data-page="rooms">
+          <h2>Phòng thi</h2>
+          <p>Tạo mã phòng, nhập danh sách học sinh và quản lý ca thi.</p>
+          <span>Mở mục này</span>
+        </button>
+        <button class="module-card" data-page="classes">
+          <h2>Lớp học</h2>
+          <p>Tạo lớp học và xem khối, năm học đã khai báo.</p>
+          <span>Mở mục này</span>
+        </button>
+      </div>
+    </template>
+
+    <script src="/app.js?v=20261105-usertable1" defer></script>
+    <script src="/exam-ui.js?v=20261105-usertable1" defer></script>
+    <script src="/room-config.js?v=20261105-usertable1" defer></script>
+  </body>
+</html>

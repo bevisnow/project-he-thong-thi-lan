@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Lớp học · LanExam</title>
+    <link rel="stylesheet" href="/styles.css?v=20261105-usertable1">
+  </head>
+
+  <body data-page="classes">
+    <div id="app"></div>
+    <div id="toast" role="status" aria-live="polite"></div>
+    <div id="modal" class="veil hidden"></div>
+
+    <template id="pageTemplate">
+      <div class="heading">
+        <div>
+          <span class="eyebrow">DANH SÁCH LỚP</span>
+          <h1>Lớp học</h1>
+          <p>Tạo lớp để phân loại học sinh khi import danh sách vào phòng thi.</p>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>Tạo lớp mới</h2>
+            <p>Giáo viên chỉ quản lý các lớp do mình tạo.</p>
+          </div>
+        </div>
+        <div class="panel-body">
+          <form id="classForm" class="form-grid two">
+            <label class="field">
+              Tên lớp
+              <input name="class_name" required maxlength="50" placeholder="Ví dụ: 10A1">
+            </label>
+            <label class="field">
+              Khối lớp
+              <select name="grade_id" required>{{GRADE_OPTIONS}}</select>
+            </label>
+            <label class="field">
+              Năm học
+              <input name="school_year" maxlength="20" placeholder="Ví dụ: 2026-2027">
+            </label>
+            <div id="classError" class="error"></div>
+            <div class="form-actions">
+              <button class="primary" type="submit">Tạo lớp</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>Lớp đã tạo</h2>
+            <p id="classCount">Đang tải...</p>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>TÊN LỚP</th>
+                <th>KHỐI</th>
+                <th>NĂM HỌC</th>
+                <th>TRẠNG THÁI</th>
+              </tr>
+            </thead>
+            <tbody id="classRows">
+              <tr>
+                <td colspan="4" class="empty">Đang tải...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </template>
+
+    <script src="/app.js?v=20261105-usertable1" defer></script>
+    <script src="/exam-ui.js?v=20261105-usertable1" defer></script>
+    <script src="/room-config.js?v=20261105-usertable1" defer></script>
+  </body>
+</html>

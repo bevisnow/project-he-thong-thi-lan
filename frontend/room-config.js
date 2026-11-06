@@ -30,7 +30,7 @@ function roomForm() {
     <div class="dialog">
       <div class="dialog-head">
         <div><span class="eyebrow">TỔ CHỨC THI</span><h2>Tạo phòng thi</h2></div>
-        <button class="mini" data-action="close-modal">✕</button>
+        <button class="mini" data-action="close-modal">Đóng</button>
       </div>
       <div class="dialog-body">
         <form id="roomForm">
@@ -54,7 +54,7 @@ function roomForm() {
             <label class="field">Kết thúc
               <input name="end_time" type="datetime-local">
             </label>
-            <label class="field" style="grid-column:1/-1">
+            <label class="field full-width">
               Mật khẩu phòng (tùy chọn, tối thiểu 8 ký tự)
               <input name="password" type="password" minlength="8" maxlength="128" autocomplete="new-password">
             </label>

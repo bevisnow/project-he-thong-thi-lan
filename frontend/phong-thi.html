@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Phòng thi · LanExam</title>
+    <link rel="stylesheet" href="/styles.css?v=20261105-usertable1">
+  </head>
+  <body data-page="rooms">
+    <div id="app"></div>
+    <div id="toast" role="status" aria-live="polite"></div>
+    <div id="modal" class="veil hidden"></div>
+
+    <template id="pageTemplate">
+      <div class="heading">
+        <div>
+          <span class="eyebrow">TỔ CHỨC THI</span>
+          <h1>Phòng thi</h1>
+          <p>Tạo mã vào thi, thêm học sinh và theo dõi trạng thái các ca thi.</p>
+        </div>
+        <button class="primary" data-action="new-room">Tạo phòng thi</button>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>Danh sách phòng thi</h2>
+            <p id="sessionCount">Đang tải...</p>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>PHÒNG THI</th>
+                <th>ĐỀ</th>
+                <th>MÃ PHÒNG</th>
+                <th>LỊCH THI</th>
+                <th>TRẠNG THÁI</th>
+                <th>THAO TÁC</th>
+              </tr>
+            </thead>
+            <tbody id="sessionRows">
+              <tr>
+                <td colspan="6" class="empty">Đang tải...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </template>
+
+    <script src="/app.js?v=20261105-usertable1" defer></script>
+    <script src="/exam-ui.js?v=20261105-usertable1" defer></script>
+    <script src="/room-config.js?v=20261105-usertable1" defer></script>
+  </body>
+</html>

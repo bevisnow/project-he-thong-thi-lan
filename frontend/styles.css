@@ -80,11 +80,6 @@ button:disabled {
   color: #4659d9;
   font-weight: 700;
 }
-.nav .ico {
-  display: inline-block;
-  width: 23px;
-  font-size: 15px;
-}
 .profile {
   margin-top: auto;
   border-top: 1px solid var(--line);
@@ -267,6 +262,29 @@ button:disabled {
 .form-grid.two {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
+.full-width {
+  grid-column: 1 / -1;
+}
+.answer-fields-heading {
+  padding: 0 0 8px;
+}
+.correct-option {
+  align-self: end;
+  padding: 11px;
+}
+.answer-option-row {
+  margin: 8px 0;
+}
+.shuffle-info {
+  margin-top: 12px;
+}
+.align-end {
+  align-self: end;
+}
+.preview-question {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
 .field {
   display: flex;
   flex-direction: column;
@@ -395,17 +413,6 @@ td {
   transform: translateY(-2px);
   border-color: #bac2ff;
 }
-.module-icon {
-  width: 42px;
-  height: 42px;
-  display: grid;
-  place-items: center;
-  border-radius: 12px;
-  color: var(--accent);
-  background: #eef0ff;
-  font-size: 20px;
-  margin-bottom: 15px;
-}
 .module-card h2 {
   font-size: 15px;
   margin: 0 0 7px;
@@ -521,10 +528,6 @@ td {
   max-width: 520px;
   margin: 0;
 }
-.hero-mark {
-  font-size: 44px;
-  color: var(--accent);
-}
 .hero-foot {
   display: block;
   margin-top: 0;
@@ -559,13 +562,13 @@ td {
   text-align: left;
   background: #fff;
 }
+a.choice-card {
+  color: inherit;
+  text-decoration: none;
+}
 .choice-card:hover {
   border-color: #aab4ff;
   background: #fafaff;
-}
-.choice-card .module-icon {
-  margin: 0;
-  flex: none;
 }
 .choice-card strong,
 .choice-card small {
@@ -672,6 +675,9 @@ td {
   font-weight: 700;
   color: var(--accent);
 }
+.timer.warning {
+  color: var(--red);
+}
 .progress {
   height: 7px;
   background: #edf0f5;
@@ -688,6 +694,9 @@ td {
 }
 .align-right {
   text-align: right;
+}
+.exam-matrix-heading {
+  padding: 20px 0 10px;
 }
 .matrix-row {
   display: grid;
@@ -786,10 +795,6 @@ td {
     padding: 8px;
     font-size: 11px;
     margin: 2px;
-  }
-  .nav .ico {
-    width: auto;
-    margin-right: 4px;
   }
   .main {
     margin: 0;

@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#4c5ed7">
+  <title>Làm bài thi · LanExam</title>
+  <link rel="stylesheet" href="/styles.css?v=20261106-student-flow1">
+  <link rel="stylesheet" href="/exam.css?v=20261106-student-flow1">
+</head>
+<body data-page="exam">
+  <div id="app"></div>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <div id="modal" class="veil hidden"></div>
+  <template id="pageTemplate">
+    <main class="exam-shell">
+      <aside class="exam-nav panel">
+        <div class="exam-nav-title">Câu hỏi <span>{{QUESTION_COUNT}} câu</span></div>
+        <label class="exam-group-toggle"><input type="checkbox" data-action="toggle-question-groups" {{GROUPED_CHECKED}}> Phân nhóm</label>
+        <div class="exam-nav-items">{{QUESTION_NAV}}</div>
+        <div class="exam-legend"><span><i class="answered-dot"></i> Đã làm</span><span><i class="flagged-dot"></i> Đánh dấu</span></div>
+        <button class="danger exam-submit" data-action="submit-exam">Nộp bài</button>
+      </aside>
+      <section class="exam-main">
+        <header class="panel exam-candidate">
+          <div class="exam-heading">
+            <h1>{{EXAM_TITLE}}</h1>
+            <span>{{SUBJECT_NAME}} · còn <b id="timer">--:--</b></span>
+            <div class="exam-progress">
+              <div class="exam-progress-track"><i id="examProgressBar" style="width:{{PROGRESS_WIDTH}}%"></i></div>
+              <span id="examProgressLabel">{{PROGRESS_TEXT}}</span>
+            </div>
+          </div>
+          <div class="exam-identity"><b>{{CANDIDATE_NAME}}</b><span>SBD: {{STUDENT_CODE}}</span><span>Mã đề: {{PAPER_CODE}}</span></div>
+        </header>
+        {{QUESTION_CARDS}}
+        <button class="danger exam-submit exam-submit-bottom" data-action="submit-exam">Nộp bài</button>
+      </section>
+    </main>
+  </template>
+  <script src="/app.js?v=20261106-student-flow1" defer></script>
+  <script src="/exam-ui.js?v=20261106-student-flow2" defer></script>
+  <script src="/room-config.js?v=20261106-student-flow1" defer></script>
+</body>
+</html>

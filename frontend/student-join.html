@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#4c5ed7">
+    <title>Vào phòng thi · LanExam</title>
+    <link rel="stylesheet" href="/styles.css?v=20261105-usertable1">
+  </head>
+  <body>
+    <main class="student-stage">
+      <div class="student-box">
+        <a class="back-link" href="/">Trang chủ</a>
+        <section class="login-card">
+          <h1>Vào phòng thi</h1>
+          <p>Nhập địa chỉ máy chủ, mã phòng và mã học sinh được giáo viên cung cấp.</p>
+          <form id="joinForm">
+            <label class="field">Địa chỉ máy chủ
+              <input name="base" value="" required placeholder="http://192.168.1.10:8000">
+            </label>
+            <label class="field">Mã phòng
+              <input name="access_code" required autocomplete="off" placeholder="Mã phòng thi">
+            </label>
+            <label class="field">Mã học sinh / SBD
+              <input name="student_code" required autocomplete="off">
+            </label>
+            <label class="field">Mật khẩu phòng
+              <input name="password" type="password" placeholder="Nếu phòng có mật khẩu">
+            </label>
+            <div id="joinError" class="error" role="alert"></div>
+            <button class="primary" type="submit">Vào thi</button>
+          </form>
+        </section>
+      </div>
+    </main>
+    <script src="/auth-pages.js?v=20261106-student-flow1" defer></script>
+  </body>
+</html>

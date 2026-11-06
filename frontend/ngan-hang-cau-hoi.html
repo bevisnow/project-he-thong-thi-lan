@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Ngân hàng câu hỏi · LanExam</title>
+    <link rel="stylesheet" href="/styles.css?v=20261105-usertable1">
+  </head>
+
+  <body data-page="questions">
+    <div id="app"></div>
+    <div id="toast" role="status" aria-live="polite"></div>
+    <div id="modal" class="veil hidden"></div>
+
+    <template id="pageTemplate">
+      <div class="heading">
+        <div>
+          <span class="eyebrow">THƯ VIỆN HỌC LIỆU</span>
+          <h1>Ngân hàng câu hỏi</h1>
+          <p>Tìm câu hỏi theo phạm vi kiến thức, sau đó xem hoặc cập nhật nội dung.</p>
+        </div>
+        <button class="primary" data-action="new-question">Thêm câu hỏi</button>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>Phạm vi kiến thức</h2>
+            <p>Chọn môn và khối trước khi lọc chủ đề, bài học.</p>
+          </div>
+          <span class="pill">BƯỚC 1</span>
+        </div>
+        <div class="panel-body filters">
+          <label class="field">
+            Môn học
+            <select id="qSubject">
+              <option value="">Tất cả môn</option>
+              {{SUBJECT_OPTIONS}}
+            </select>
+          </label>
+          <label class="field">
+            Khối lớp
+            <select id="qGrade">
+              <option value="">Tất cả khối</option>
+              {{GRADE_OPTIONS}}
+            </select>
+          </label>
+          <label class="field">
+            Chủ đề
+            <select id="qTopic">
+              <option value="">Tất cả chủ đề</option>
+            </select>
+          </label>
+          <label class="field">
+            Bài học
+            <select id="qLesson">
+              <option value="">Tất cả bài học</option>
+            </select>
+          </label>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>Danh sách câu hỏi</h2>
+            <p id="questionCount">Đang tải...</p>
+          </div>
+          <span class="muted">File nhập câu hỏi: Word (.docx)</span>
+        </div>
+        <div class="toolbar">
+          <input id="qSearch" placeholder="Tìm nội dung câu hỏi...">
+          <select id="qType">
+            <option value="">Tất cả dạng câu</option>
+            {{TYPE_OPTIONS}}
+          </select>
+          <select id="qDiff">
+            <option value="">Mọi mức độ</option>
+            {{DIFFICULTY_OPTIONS}}
+          </select>
+          <button class="secondary" data-action="import-questions">Import Word (.docx)</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>NỘI DUNG</th>
+                <th>MÔN / KHỐI</th>
+                <th>DẠNG CÂU</th>
+                <th>MỨC ĐỘ</th>
+                <th>CHIA SẺ</th>
+                <th>TRẠNG THÁI</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="questionRows">
+              <tr>
+                <td colspan="7" class="empty">Đang tải...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="panel-foot" id="questionFoot"></div>
+      </div>
+    </template>
+
+    <script src="/app.js?v=20261106-import-topic-required" defer></script>
+    <script src="/exam-ui.js?v=20261105-usertable1" defer></script>
+    <script src="/room-config.js?v=20261105-usertable1" defer></script>
+  </body>
+</html>

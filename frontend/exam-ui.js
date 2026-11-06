@@ -96,6 +96,7 @@ window.saveCurrentAnswer = async function () {
 };
 
 window.startExam = async function () {
+  await ensurePageTemplate("exam");
   const exam = await api("/api/exam/me", {}, state.studentToken);
   if (!exam.question_ids?.length) {
     throw Error(
@@ -129,192 +130,73 @@ function examPage() {
   const flags = examFlags();
   const grouped = !!state.exam.grouped;
   const answeredCount = questions.filter(
-    (question) => state.answers[question.question.question_id],
+    (item) => state.answers[item.question.question_id],
   ).length;
   const progress = Math.round((answeredCount / questions.length) * 100);
 
   function questionButton(id, index) {
     const answered = state.answers[id] ? "answered " : "";
     const flagged = flags[id] ? "flagged" : "";
-    return (
-      '<button class="exam-qnav ' +
-      answered +
-      flagged +
-      '" data-jump-index="' +
-      (index + 1) +
-      '" data-question-id="' +
-      id +
-      '" aria-label="Câu ' +
-      (index + 1) +
-      '">' +
-      (index + 1) +
-      "</button>"
-    );
+    return `<button class="exam-qnav ${answered}${flagged}" data-jump-index="${index + 1}" data-question-id="${id}" aria-label="Câu ${index + 1}">${index + 1}</button>`;
   }
 
   const nav = grouped
-    ? [...new Set(questions.map((q) => q.question.question_type))]
+    ? [...new Set(questions.map((item) => item.question.question_type))]
         .map((type) => {
           const buttons = questions
-            .map((question, index) =>
-              question.question.question_type === type
-                ? questionButton(question.question.question_id, index)
-                : "",
-            )
+            .map((item, index) => item.question.question_type === type
+              ? questionButton(item.question.question_id, index)
+              : "")
             .join("");
-          return (
-            '<div class="exam-nav-group"><b>' +
-            esc(typeName[type] || type) +
-            '</b><div class="exam-question-list">' +
-            buttons +
-            "</div></div>"
-          );
+          return `<div class="exam-nav-group"><b>${esc(typeName[type] || type)}</b><div class="exam-question-list">${buttons}</div></div>`;
         })
         .join("")
-    : '<div class="exam-question-list">' +
-      me.question_ids.map(questionButton).join("") +
-      "</div>";
+    : `<div class="exam-question-list">${me.question_ids.map(questionButton).join("")}</div>`;
 
-  const cards = questions
-    .map((item, index) => {
-      const question = item.question;
-      const id = question.question_id;
-      const answer = state.answers[id] || "";
-      const flagged = !!flags[id];
-      let trueFalseAnswers = {};
-      try {
-        trueFalseAnswers = JSON.parse(answer || "{}");
-      } catch {}
+  const cards = questions.map((item, index) => {
+    const question = item.question;
+    const id = question.question_id;
+    const answer = state.answers[id] || "";
+    const flagged = !!flags[id];
+    let trueFalseAnswers = {};
+    try {
+      trueFalseAnswers = JSON.parse(answer || "{}");
+    } catch {}
 
-      let answerMarkup = "";
-      if (question.question_type === "multiple_choice") {
-        answerMarkup = item.options
-          .map(
-            (option) =>
-              '<label class="answer-option"><input type="radio" name="answer_' +
-              id +
-              '" value="' +
-              esc(option.option_key) +
-              '" ' +
-              (answer === option.option_key ? "checked" : "") +
-              "><span><b>" +
-              esc(option.option_key) +
-              ".</b> " +
-              esc(option.option_text) +
-              "</span></label>",
-          )
-          .join("");
-      } else if (question.question_type === "true_false") {
-        answerMarkup = item.options
-          .map(
-            (option) =>
-              '<div class="tf-statement"><div class="tf-text"><b>' +
-              esc(option.option_key) +
-              ".</b> " +
-              esc(option.option_text) +
-              '</div><div class="tf-choices"><label><input type="radio" name="tf_' +
-              esc(option.option_key) +
-              "_" +
-              id +
-              '" value="true" ' +
-              (trueFalseAnswers[option.option_key] === true ? "checked" : "") +
-              '> Đúng</label><label><input type="radio" name="tf_' +
-              esc(option.option_key) +
-              "_" +
-              id +
-              '" value="false" ' +
-              (trueFalseAnswers[option.option_key] === false ? "checked" : "") +
-              "> Sai</label></div></div>",
-          )
-          .join("");
-      } else {
-        answerMarkup =
-          '<label class="field">Câu trả lời<textarea maxlength="500" ' +
-          'placeholder="Nhập câu trả lời…">' +
-          esc(answer) +
-          "</textarea></label>";
-      }
+    let answerMarkup = "";
+    if (question.question_type === "multiple_choice") {
+      answerMarkup = item.options.map((option) =>
+        `<label class="answer-option"><input type="radio" name="answer_${id}" value="${esc(option.option_key)}" ${answer === option.option_key ? "checked" : ""}><span><b>${esc(option.option_key)}.</b> ${esc(option.option_text)}</span></label>`,
+      ).join("");
+    } else if (question.question_type === "true_false") {
+      answerMarkup = item.options.map((option) =>
+        `<div class="tf-statement"><div class="tf-text"><b>${esc(option.option_key)}.</b> ${esc(option.option_text)}</div><div class="tf-choices"><label><input type="radio" name="tf_${esc(option.option_key)}_${id}" value="true" ${trueFalseAnswers[option.option_key] === true ? "checked" : ""}> Đúng</label><label><input type="radio" name="tf_${esc(option.option_key)}_${id}" value="false" ${trueFalseAnswers[option.option_key] === false ? "checked" : ""}> Sai</label></div></div>`,
+      ).join("");
+    } else {
+      answerMarkup = `<label class="field">Câu trả lời<textarea maxlength="500" placeholder="Nhập câu trả lời…">${esc(answer)}</textarea></label>`;
+    }
 
-      const media = (item.media || [])
-        .filter((file) => file.image_url)
-        .map(
-          (file) =>
-            '<img class="exam-media" src="' +
-            esc(state.base + file.image_url) +
-            '" alt="Hình minh họa câu hỏi">',
-        )
-        .join("");
+    const media = (item.media || [])
+      .filter((file) => file.image_url)
+      .map((file) => `<img class="exam-media" src="${esc(state.base + file.image_url)}" alt="Hình minh họa câu hỏi">`)
+      .join("");
 
-      return (
-        '<article id="exam-question-' +
-        id +
-        '" class="panel exam-question-card ' +
-        (flagged ? "question-flagged" : "") +
-        '"><div class="exam-meta"><span>Câu ' +
-        (index + 1) +
-        " / " +
-        questions.length +
-        " · " +
-        esc(typeName[question.question_type] || "") +
-        '</span><button class="exam-flag ' +
-        (flagged ? "is-flagged" : "") +
-        '" data-action="toggle-flag" data-question-id="' +
-        id +
-        '" aria-pressed="' +
-        flagged +
-        '">' +
-        (flagged ? "⚑ Bỏ đánh dấu" : "⚑ Đánh dấu câu") +
-        "</button></div><h2>" +
-        window.questionTextHtml(question.question_text) +
-        "</h2>" +
-        media +
-        '<div class="exam-answer-area">' +
-        answerMarkup +
-        "</div></article>"
-      );
-    })
-    .join("");
+    return `<article id="exam-question-${id}" class="panel exam-question-card ${flagged ? "question-flagged" : ""}"><div class="exam-meta"><span>Câu ${index + 1} / ${questions.length} · ${esc(typeName[question.question_type] || "")}</span><button class="exam-flag ${flagged ? "is-flagged" : ""}" data-action="toggle-flag" data-question-id="${id}" aria-pressed="${flagged}">${flagged ? "Bỏ đánh dấu câu" : "Đánh dấu câu"}</button></div><h2>${window.questionTextHtml(question.question_text)}</h2>${media}<div class="exam-answer-area">${answerMarkup}</div></article>`;
+  }).join("");
 
-  return (
-    '<main class="exam-shell"><aside class="exam-nav panel">' +
-    '<div class="exam-nav-title">Câu hỏi <span>' +
-    questions.length +
-    " câu</span></div>" +
-    '<label class="exam-group-toggle"><input type="checkbox" ' +
-    'data-action="toggle-question-groups" ' +
-    (grouped ? "checked" : "") +
-    '> Phân nhóm</label><div class="exam-nav-items">' +
-    nav +
-    '</div><div class="exam-legend"><span><i class="answered-dot"></i> Đã làm</span>' +
-    '<span><i class="flagged-dot"></i> Đánh dấu</span></div>' +
-    '<button class="danger exam-submit" data-action="submit-exam">Nộp bài</button></aside>' +
-    '<section class="exam-main"><header class="panel exam-candidate"><div class="exam-heading">' +
-    "<h1>" +
-    esc(me.exam_title || "Bài thi") +
-    "</h1><span>" +
-    esc(me.subject_name || "") +
-    ' · còn <b id="timer">--:--</b></span>' +
-    '<div class="exam-progress"><div class="exam-progress-track"><i id="examProgressBar" ' +
-    'style="width:' +
-    progress +
-    '%"></i></div><span id="examProgressLabel">' +
-    progress +
-    "% · " +
-    answeredCount +
-    "/" +
-    questions.length +
-    " câu</span></div></div>" +
-    '<div class="exam-identity"><b>' +
-    esc(me.full_name) +
-    "</b><span>SBD: " +
-    esc(me.student_code) +
-    "</span><span>Mã đề: " +
-    esc(me.paper_code || "—") +
-    "</span></div></header>" +
-    cards +
-    '<button class="danger exam-submit exam-submit-bottom" data-action="submit-exam">Nộp bài</button>' +
-    "</section></main>"
-  );
+  return fillTemplate("exam", {
+    QUESTION_NAV: nav,
+    QUESTION_CARDS: cards,
+    QUESTION_COUNT: questions.length,
+    GROUPED_CHECKED: grouped ? "checked" : "",
+    EXAM_TITLE: esc(me.exam_title || "Bài thi"),
+    SUBJECT_NAME: esc(me.subject_name || ""),
+    PROGRESS_WIDTH: progress,
+    PROGRESS_TEXT: `${progress}% · ${answeredCount}/${questions.length} câu`,
+    CANDIDATE_NAME: esc(me.full_name),
+    STUDENT_CODE: esc(me.student_code),
+    PAPER_CODE: esc(me.paper_code || "—"),
+  });
 }
 window.examPage = examPage;
 document.addEventListener(
@@ -336,7 +218,7 @@ document.addEventListener(
         saveExamFlags(flags);
         flagButton.classList.toggle("is-flagged", flags[id]);
         flagButton.setAttribute("aria-pressed", String(flags[id]));
-        flagButton.textContent = flags[id] ? "⚑ Bỏ đánh dấu" : "⚑ Đánh dấu câu";
+        flagButton.textContent = flags[id] ? "Bỏ đánh dấu câu" : "Đánh dấu câu";
         document
           .querySelector('.exam-qnav[data-question-id="' + id + '"]')
           ?.classList.toggle("flagged", flags[id]);
@@ -458,18 +340,14 @@ async function reportTabViolation(pageExit = false) {
   lastTabViolation = Date.now();
 
   try {
-    const response = await fetch(state.base + "/api/exam/violations", {
+    const response = await authorizedFetch("/api/exam/violations", {
       method: "POST",
-      headers: {
-        Authorization: "Bearer " + state.studentToken,
-        "Content-Type": "application/json",
-      },
       body: JSON.stringify({
         violation_type: "tab_hidden",
         description: "Học sinh rời trang thi hoặc đổi tab",
       }),
       keepalive: true,
-    });
+    }, state.studentToken);
     if (!response.ok) return;
 
     const result = await response.json();

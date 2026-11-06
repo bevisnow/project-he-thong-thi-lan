@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Khung giáo viên · LanExam</title>
+  <link rel="stylesheet" href="/styles.css?v=20261105-usertable1">
+</head>
+<body>
+  <template id="layoutTemplate">
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand"><b>LanExam</b><small>HỆ THỐNG THI TRỰC TUYẾN</small></div>
+        <p class="nav-label">KHÔNG GIAN GIÁO VIÊN</p>
+        <button class="nav" data-page="dashboard">Tổng quan</button>
+        <button class="nav" data-page="questions">Ngân hàng câu hỏi</button>
+        <button class="nav" data-page="createExam">Tạo đề</button>
+        <button class="nav" data-page="exams">Đề đã tạo</button>
+        <button class="nav" data-page="shuffle">Trộn đề</button>
+        <button class="nav" data-page="rooms">Phòng thi</button>
+        <button class="nav" data-page="classes">Lớp học</button>
+        <button class="nav" data-page="users" data-admin-only>Tài khoản giáo viên</button>
+        <div class="profile">
+          <div class="avatar">{{INITIALS}}</div>
+          <div><strong>{{FULL_NAME}}</strong><small>{{USERNAME}}</small></div>
+          <button class="link-button" data-action="logout" title="Đăng xuất">Đăng xuất</button>
+        </div>
+      </aside>
+      <main class="main">
+        <header class="topbar"><span>Không gian giáo viên　/　<b>{{PAGE_TITLE}}</b></span></header>
+        <section class="content">{{BODY}}</section>
+      </main>
+    </div>
+  </template>
+</body>
+</html>

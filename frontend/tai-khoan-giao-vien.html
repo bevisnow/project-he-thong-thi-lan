@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Tài khoản giáo viên · LanExam</title>
+    <link rel="stylesheet" href="/styles.css?v=20261105-usertable1">
+  </head>
+
+  <body data-page="users">
+    <div id="app"></div>
+    <div id="toast" role="status" aria-live="polite"></div>
+    <div id="modal" class="veil hidden"></div>
+
+    <template id="pageTemplate">
+      <div class="heading">
+        <div>
+          <span class="eyebrow">QUẢN TRỊ</span>
+          <h1>Tài khoản giáo viên</h1>
+          <p>Tạo tài khoản đăng nhập cho giáo viên.</p>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>Tạo tài khoản mới</h2>
+            <p>Mật khẩu tối thiểu 8 ký tự. Hệ thống chỉ cho phép tạo tài khoản giáo viên.</p>
+          </div>
+        </div>
+        <div class="panel-body">
+          <form id="userForm" class="form-grid two">
+            <label class="field">
+              Tên đăng nhập
+              <input name="username" minlength="3" maxlength="50" required autocomplete="username" placeholder="Ví dụ: gv_toan">
+            </label>
+            <label class="field">
+              Họ và tên
+              <input name="full_name" minlength="1" maxlength="100" required placeholder="Tên giáo viên">
+            </label>
+            <label class="field">
+              Mật khẩu
+              <input name="password" type="password" minlength="8" maxlength="128" required autocomplete="new-password">
+            </label>
+            <div id="userError" class="error"></div>
+            <div class="form-actions">
+              <button class="primary" type="submit">Tạo tài khoản</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>Tài khoản hiện có</h2>
+            <p>{{USER_COUNT}} tài khoản</p>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>TÊN ĐĂNG NHẬP</th>
+                <th>HỌ VÀ TÊN</th>
+                <th>VAI TRÒ</th>
+                <th>TRẠNG THÁI</th>
+                <th>NGÀY TẠO</th>
+              </tr>
+            </thead>
+            <tbody id="userRows">
+              <tr>
+                <td colspan="5" class="empty">Đang tải...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </template>
+
+    <script src="/app.js?v=20261105-usertable1" defer></script>
+    <script src="/exam-ui.js?v=20261105-usertable1" defer></script>
+    <script src="/room-config.js?v=20261105-usertable1" defer></script>
+  </body>
+</html>

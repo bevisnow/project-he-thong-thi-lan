@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#4c5ed7">
+    <title>Tạo đề · LanExam</title>
+    <link rel="stylesheet" href="/styles.css?v=20261105-usertable1">
+    <link rel="stylesheet" href="/exam.css?v=20261105-usertable1">
+  </head>
+  <body data-page="createExam">
+    <div id="app"></div>
+    <div id="toast" role="status" aria-live="polite"></div>
+    <div id="modal" class="veil hidden"></div>
+
+    <template id="examPageTemplate">
+      <div class="heading">
+        <div>
+          <span class="eyebrow">THIẾT KẾ ĐỀ</span>
+          <h1>Tạo đề</h1>
+          <p>Lập ma trận từ ngân hàng câu hỏi, sinh đề gốc rồi kiểm tra trước khi lưu.</p>
+        </div>
+      </div>
+      <div class="panel exam-builder">
+        <div class="panel-head">
+          <div>
+            <h2>Thông tin đề</h2>
+            <p>Nhập thông tin đơn vị, môn, khối và thời lượng.</p>
+          </div>
+          <span class="pill">BƯỚC 1</span>
+        </div>
+        <div class="panel-body">
+          <form id="examForm">
+            <div class="form-grid two">
+              <label class="field">Cơ quan chủ quản
+                <input name="supervising_authority" maxlength="255" placeholder="Ví dụ: Sở Giáo dục và Đào tạo">
+              </label>
+              <label class="field">Tên trường
+                <input name="school_name" maxlength="255" placeholder="Ví dụ: Trường THPT ...">
+              </label>
+              <label class="field">Tên đề
+                <input name="title" required maxlength="255" placeholder="Ví dụ: Kiểm tra giữa kỳ II">
+              </label>
+              <label class="field">Thời lượng (phút)
+                <input name="duration_minutes" type="number" min="1" value="45" required>
+              </label>
+              <label class="field">Môn học
+                <select name="subject_id" required>{{SUBJECT_OPTIONS}}</select>
+              </label>
+              <label class="field">Khối lớp
+                <select name="grade_id" required>{{GRADE_OPTIONS}}</select>
+              </label>
+            </div>
+            <div class="panel-head exam-matrix-heading">
+              <div>
+                <h2>Ma trận câu hỏi</h2>
+                <p>Mỗi dòng chọn chủ đề, độ khó, dạng câu và số lượng.</p>
+              </div>
+              <button type="button" class="secondary" data-action="add-matrix">Thêm dòng</button>
+            </div>
+            <div id="matrixRows"></div>
+            <div id="examError" class="error"></div>
+            <div class="form-actions">
+              <button class="primary" type="submit">Tạo đề và sinh đề gốc</button>
+            </div>
+          </form>
+        </div>
+      </div>
+      <div id="examPreview" class="exam-builder"></div>
+    </template>
+
+    <template id="matrixRowTemplate">
+      <div class="matrix-row">
+        <label class="field wide-cell">Chủ đề
+          <select class="mTopic" required><option value="">Chọn chủ đề</option></select>
+        </label>
+        <label class="field">Bài học
+          <select class="mLesson"><option value="">Tất cả bài</option></select>
+        </label>
+        <label class="field">Mức độ
+          <select class="mDiff"><option>NB</option><option>TH</option><option>VD</option><option>VDC</option></select>
+        </label>
+        <label class="field">Dạng câu
+          <select class="mType">{{QUESTION_TYPE_OPTIONS}}</select>
+        </label>
+        <label class="field">Số câu
+          <input class="mCount" type="number" min="1" value="1">
+        </label>
+        <button type="button" class="mini" data-action="remove-matrix">Xóa</button>
+      </div>
+    </template>
+
+    <script src="/app.js?v=20261105-usertable1" defer></script>
+    <script src="/exam-ui.js?v=20261105-usertable1" defer></script>
+    <script src="/room-config.js?v=20261105-usertable1" defer></script>
+  </body>
+</html>

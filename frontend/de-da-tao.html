@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Đề đã tạo · LanExam</title>
+    <link rel="stylesheet" href="/styles.css?v=20261105-usertable1">
+  </head>
+  <body data-page="exams">
+    <div id="app"></div>
+    <div id="toast" role="status" aria-live="polite"></div>
+    <div id="modal" class="veil hidden"></div>
+
+    <template id="pageTemplate">
+      <div class="heading">
+        <div>
+          <span class="eyebrow">THIẾT KẾ ĐỀ</span>
+          <h1>Đề đã tạo</h1>
+          <p>Theo dõi đề nháp và đề đã sẵn sàng sử dụng.</p>
+        </div>
+        <button class="primary" data-page="createExam">Tạo đề</button>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>Danh sách đề</h2>
+            <p id="examCount">Đang tải...</p>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>TÊN ĐỀ</th>
+                <th>MÔN / KHỐI</th>
+                <th>THỜI LƯỢNG</th>
+                <th>TRẠNG THÁI</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="examRows">
+              <tr>
+                <td colspan="5" class="empty">Đang tải...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </template>
+
+    <script src="/app.js?v=20261105-usertable1" defer></script>
+    <script src="/exam-ui.js?v=20261105-usertable1" defer></script>
+    <script src="/room-config.js?v=20261105-usertable1" defer></script>
+  </body>
+</html>
