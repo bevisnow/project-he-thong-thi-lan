@@ -20,7 +20,11 @@ const state = {
   base: localStorage.getItem("examBase") || location.origin,
   token: sessionStorage.getItem("examToken") || "",
   user: JSON.parse(sessionStorage.getItem("examUser") || "null"),
-  page: document.body.dataset.page || new URLSearchParams(location.search).get("screen") || sessionStorage.getItem("appLastPage") || "home",
+  page:
+    document.body.dataset.page ||
+    new URLSearchParams(location.search).get("screen") ||
+    sessionStorage.getItem("appLastPage") ||
+    "home",
   subjects: [],
   grades: [],
   topics: [],
@@ -73,7 +77,9 @@ async function api(path, options = {}, token = state.token) {
   try {
     res = await authorizedFetch(path, options, token);
   } catch (error) {
-    if (error.message === "Phiên đăng nhập đã hết hạn. Đăng nhập lại để tiếp tục.")
+    if (
+      error.message === "Phiên đăng nhập đã hết hạn. Đăng nhập lại để tiếp tục."
+    )
       throw error;
     throw Error(
       "Không kết nối được máy chủ. Kiểm tra địa chỉ backend và mạng LAN.",
@@ -93,13 +99,20 @@ async function api(path, options = {}, token = state.token) {
 let refreshPromise;
 async function refreshAccessToken() {
   if (!refreshPromise) {
-    refreshPromise = fetch(state.base.replace(/\/$/, "") + "/api/auth/refresh", {
-      method: "POST",
-      credentials: "include",
-    }).then(async (res) => {
-      if (!res.ok) throw Error("Phiên đăng nhập đã hết hạn");
-      return (await res.json()).access_token;
-    }).finally(() => { refreshPromise = null; });
+    refreshPromise = fetch(
+      state.base.replace(/\/$/, "") + "/api/auth/refresh",
+      {
+        method: "POST",
+        credentials: "include",
+      },
+    )
+      .then(async (res) => {
+        if (!res.ok) throw Error("Phiên đăng nhập đã hết hạn");
+        return (await res.json()).access_token;
+      })
+      .finally(() => {
+        refreshPromise = null;
+      });
   }
   return refreshPromise;
 }
@@ -204,7 +217,8 @@ function appShell(body) {
   shell.content.querySelectorAll(".nav[data-page]").forEach((item) => {
     item.classList.toggle("active", item.dataset.page === state.page);
   });
-  if (state.user?.role !== "admin") shell.content.querySelector("[data-admin-only]")?.remove();
+  if (state.user?.role !== "admin")
+    shell.content.querySelector("[data-admin-only]")?.remove();
   return shell.innerHTML;
 }
 function fillTemplate(name, values) {
@@ -220,7 +234,8 @@ function dashboard() {
     FULL_NAME: esc(state.user?.full_name || "giáo viên"),
     QUESTION_TOTAL: state.questionTotal || "—",
     EXAM_TOTAL: state.exams.length || "—",
-    SESSION_TOTAL: state.sessions.filter((item) => item.status === "ongoing").length,
+    SESSION_TOTAL: state.sessions.filter((item) => item.status === "ongoing")
+      .length,
   });
 }
 async function loadCatalog() {
@@ -283,7 +298,10 @@ async function selectLessons(topicId, lessonEl) {
 }
 function classPage() {
   const gradeOptions = state.grades
-    .map((grade) => `<option value="${grade.grade_id}">${esc(grade.grade_name)}</option>`)
+    .map(
+      (grade) =>
+        `<option value="${grade.grade_id}">${esc(grade.grade_name)}</option>`,
+    )
     .join("");
   return fillTemplate("classes", { GRADE_OPTIONS: gradeOptions });
 }
@@ -292,7 +310,12 @@ function renderClassTable() {
   if (!rows) return;
   $("#classCount").textContent = `${state.classes.length} lớp`;
   rows.innerHTML = state.classes.length
-    ? state.classes.map((item) => `<tr><td><b>${esc(item.class_name)}</b></td><td>${esc(state.grades.find((grade) => grade.grade_id === item.grade_id)?.grade_name || "—")}</td><td>${esc(item.school_year || "—")}</td><td><span class="pill ${item.is_active ? "green" : "gray"}">${item.is_active ? "Đang dùng" : "Đã tắt"}</span></td></tr>`).join("")
+    ? state.classes
+        .map(
+          (item) =>
+            `<tr><td><b>${esc(item.class_name)}</b></td><td>${esc(state.grades.find((grade) => grade.grade_id === item.grade_id)?.grade_name || "—")}</td><td>${esc(item.school_year || "—")}</td><td><span class="pill ${item.is_active ? "green" : "gray"}">${item.is_active ? "Đang dùng" : "Đã tắt"}</span></td></tr>`,
+        )
+        .join("")
     : '<tr><td colspan="4" class="empty">Chưa có lớp học.</td></tr>';
 }
 function usersPage() {
@@ -302,15 +325,42 @@ function renderUserTable() {
   const rows = $("#userRows");
   if (!rows) return;
   rows.innerHTML = state.users.length
-    ? state.users.map((user) => `<tr><td>${esc(user.username)}</td><td>${esc(user.full_name)}</td><td>${user.role === "admin" ? "Quản trị viên" : "Giáo viên"}</td><td>${user.is_active ? "Đang hoạt động" : "Đã khóa"}</td><td>${esc(user.created_at)}</td></tr>`).join("")
+    ? state.users
+        .map(
+          (user) =>
+            `<tr><td>${esc(user.username)}</td><td>${esc(user.full_name)}</td><td>${user.role === "admin" ? "Quản trị viên" : "Giáo viên"}</td><td>${user.is_active ? "Đang hoạt động" : "Đã khóa"}</td><td>${esc(user.created_at)}</td></tr>`,
+        )
+        .join("")
     : '<tr><td colspan="5" class="empty">Chưa có tài khoản.</td></tr>';
 }
 function questionsPage() {
-  const subjectOptions = state.subjects.map((item) => `<option value="${item.subject_id}">${esc(item.subject_name)}</option>`).join("");
-  const gradeOptions = state.grades.map((item) => `<option value="${item.grade_id}">${esc(item.grade_name)}</option>`).join("");
-  const typeOptions = Object.entries(typeName).map(([value, label]) => `<option value="${value}">${label}</option>`).join("");
-  const difficultyOptions = Object.entries(diffName).map(([value, label]) => `<option value="${value}">${value} · ${label}</option>`).join("");
-  return fillTemplate("questions", { SUBJECT_OPTIONS: subjectOptions, GRADE_OPTIONS: gradeOptions, TYPE_OPTIONS: typeOptions, DIFFICULTY_OPTIONS: difficultyOptions });
+  const subjectOptions = state.subjects
+    .map(
+      (item) =>
+        `<option value="${item.subject_id}">${esc(item.subject_name)}</option>`,
+    )
+    .join("");
+  const gradeOptions = state.grades
+    .map(
+      (item) =>
+        `<option value="${item.grade_id}">${esc(item.grade_name)}</option>`,
+    )
+    .join("");
+  const typeOptions = Object.entries(typeName)
+    .map(([value, label]) => `<option value="${value}">${label}</option>`)
+    .join("");
+  const difficultyOptions = Object.entries(diffName)
+    .map(
+      ([value, label]) =>
+        `<option value="${value}">${value} · ${label}</option>`,
+    )
+    .join("");
+  return fillTemplate("questions", {
+    SUBJECT_OPTIONS: subjectOptions,
+    GRADE_OPTIONS: gradeOptions,
+    TYPE_OPTIONS: typeOptions,
+    DIFFICULTY_OPTIONS: difficultyOptions,
+  });
 }
 function renderQuestionsTable() {
   const rows = $("#questionRows");
@@ -318,12 +368,22 @@ function renderQuestionsTable() {
   $("#questionCount").textContent = `${state.questionTotal} câu hỏi`;
   $("#questionFoot").textContent = `Hiển thị ${state.questions.length} câu hỏi`;
   rows.innerHTML = state.questions.length
-    ? state.questions.map((q) => `<tr><td><div class="qtext">${questionTextHtml(q.question_text)}</div><span class="sub">Q-${q.question_id}</span></td><td>${esc(state.subjects.find((x) => x.subject_id === q.subject_id)?.subject_name || "—")}<span class="sub">${esc(state.grades.find((x) => x.grade_id === q.grade_id)?.grade_name || "—")}</span></td><td><span class="pill">${typeName[q.question_type] || q.question_type}</span></td><td><span class="pill gray">${diffName[q.difficulty] || q.difficulty}</span></td><td><span class="pill ${q.is_public ? "green" : "gray"}">${q.is_public ? "Công khai" : "Riêng tư"}</span></td><td><span class="pill ${q.is_active ? "green" : "gray"}">${q.is_active ? "Đang dùng" : "Đã tắt"}</span></td><td><div class="row-actions">${q.can_manage ? `<button class="mini" data-action="edit-question" data-id="${q.question_id}">Sửa</button><button class="mini" data-action="toggle-question-visibility" data-id="${q.question_id}" data-public="${q.is_public ? 0 : 1}">${q.is_public ? "Chuyển riêng tư" : "Chuyển công khai"}</button><button class="mini" data-action="toggle-question" data-id="${q.question_id}" data-active="${q.is_active ? 0 : 1}">${q.is_active ? "Tắt" : "Bật"}</button>` : `<button class="mini" data-action="edit-question" data-id="${q.question_id}">Xem</button>`}</div></td></tr>`).join("")
+    ? state.questions
+        .map(
+          (q) =>
+            `<tr><td><div class="qtext">${questionTextHtml(q.question_text)}</div><span class="sub">Q-${q.question_id}</span></td><td>${esc(state.subjects.find((x) => x.subject_id === q.subject_id)?.subject_name || "—")}<span class="sub">${esc(state.grades.find((x) => x.grade_id === q.grade_id)?.grade_name || "—")}</span></td><td><span class="pill">${typeName[q.question_type] || q.question_type}</span></td><td><span class="pill gray">${diffName[q.difficulty] || q.difficulty}</span></td><td><span class="pill ${q.is_public ? "green" : "gray"}">${q.is_public ? "Công khai" : "Riêng tư"}</span></td><td><span class="pill ${q.is_active ? "green" : "gray"}">${q.is_active ? "Đang dùng" : "Đã tắt"}</span></td><td><div class="row-actions">${q.can_manage ? `<button class="mini" data-action="edit-question" data-id="${q.question_id}">Sửa</button><button class="mini" data-action="toggle-question-visibility" data-id="${q.question_id}" data-public="${q.is_public ? 0 : 1}">${q.is_public ? "Chuyển riêng tư" : "Chuyển công khai"}</button><button class="mini" data-action="toggle-question" data-id="${q.question_id}" data-active="${q.is_active ? 0 : 1}">${q.is_active ? "Tắt" : "Bật"}</button>` : `<button class="mini" data-action="edit-question" data-id="${q.question_id}">Xem</button>`}</div></td></tr>`,
+        )
+        .join("")
     : '<tr><td colspan="7" class="empty">Không có câu hỏi phù hợp. Thử thay đổi bộ lọc hoặc thêm câu mới.</td></tr>';
 }
 function publicQuestionView(q) {
   const question = q.question;
-  const answers = [...(q.options || []).filter((o) => o.is_correct).map((o) => `${o.option_key}. ${o.option_text}`), ...(q.accepted_answers || []).map((a) => a.answer_text)];
+  const answers = [
+    ...(q.options || [])
+      .filter((o) => o.is_correct)
+      .map((o) => `${o.option_key}. ${o.option_text}`),
+    ...(q.accepted_answers || []).map((a) => a.answer_text),
+  ];
   return `<div class="dialog"><div class="dialog-head"><div><span class="eyebrow">CÂU HỎI CÔNG KHAI</span><h2>Chỉ xem</h2></div><button class="mini" data-action="close-modal">Đóng</button></div><div class="dialog-body"><p>${questionTextHtml(question.question_text)}</p><div>${(q.options || []).map((o) => `<p>${esc(o.option_key)}. ${esc(o.option_text)}${o.is_correct ? " (đáp án đúng)" : ""}</p>`).join("")}</div>${answers.length ? `<p><b>Đáp án:</b> ${answers.map(esc).join("; ")}</p>` : ""}<p class="muted">Câu hỏi này do giáo viên khác chia sẻ. Bạn có thể dùng trong đề của mình nhưng không thể sửa hoặc đổi quyền chia sẻ.</p></div></div>`;
 }
 
@@ -370,9 +430,33 @@ function paintAnswerFields(type, opts = [], accepted = "") {
       const selected = Boolean(o);
       const controls =
         type === "true_false"
-          ? '<div class="truth-options"><label><input type="radio" name="truth_' + k + '" value="true" ' + (selected && o.is_correct ? "checked" : "") + ' required> Mệnh đề đúng</label><label><input type="radio" name="truth_' + k + '" value="false" ' + (selected && !o.is_correct ? "checked" : "") + ' required> Mệnh đề sai</label></div>'
-          : '<label class="inline-check correct-option"><input type="radio" name="correct" value="' + k + '" ' + (o?.is_correct ? "checked" : "") + '> Đáp án đúng</label>';
-      return '<div class="form-grid two answer-option-row"><label class="field">Lựa chọn ' + k + '<input name="option_' + k + '" value="' + esc(o?.option_text || "") + '" ' + (type === "true_false" ? "required" : "") + '></label>' + controls + '</div>';
+          ? '<div class="truth-options"><label><input type="radio" name="truth_' +
+            k +
+            '" value="true" ' +
+            (selected && o.is_correct ? "checked" : "") +
+            ' required> Mệnh đề đúng</label><label><input type="radio" name="truth_' +
+            k +
+            '" value="false" ' +
+            (selected && !o.is_correct ? "checked" : "") +
+            " required> Mệnh đề sai</label></div>"
+          : '<label class="inline-check correct-option"><input type="radio" name="correct" value="' +
+            k +
+            '" ' +
+            (o?.is_correct ? "checked" : "") +
+            "> Đáp án đúng</label>";
+      return (
+        '<div class="form-grid two answer-option-row"><label class="field">Lựa chọn ' +
+        k +
+        '<input name="option_' +
+        k +
+        '" value="' +
+        esc(o?.option_text || "") +
+        '" ' +
+        (type === "true_false" ? "required" : "") +
+        "></label>" +
+        controls +
+        "</div>"
+      );
     })
     .join("")}`;
 }
@@ -394,19 +478,27 @@ async function ensurePageTemplate(page) {
   if (document.body.dataset.page !== page) {
     const response = await fetch(`/${pageFiles[page]}?v=20261105-usertable1`);
     if (!response.ok) throw Error(`Không tải được giao diện ${pageTitle()}.`);
-    source = new DOMParser().parseFromString(await response.text(), "text/html");
+    source = new DOMParser().parseFromString(
+      await response.text(),
+      "text/html",
+    );
   }
 
   if (!pageTemplates.layout) {
     const response = await fetch("/teacher-layout.html?v=20261105-usertable1");
     if (!response.ok) throw Error("Không tải được khung giao diện giáo viên.");
-    const layoutSource = new DOMParser().parseFromString(await response.text(), "text/html");
+    const layoutSource = new DOMParser().parseFromString(
+      await response.text(),
+      "text/html",
+    );
     const layoutTemplate = layoutSource.querySelector("#layoutTemplate");
     if (!layoutTemplate) throw Error("Thiếu mẫu HTML khung giáo viên.");
     pageTemplates.layout = layoutTemplate.innerHTML;
   }
 
-  const template = source.querySelector(page === "createExam" ? "#examPageTemplate" : "#pageTemplate");
+  const template = source.querySelector(
+    page === "createExam" ? "#examPageTemplate" : "#pageTemplate",
+  );
   if (!template) throw Error(`Thiếu mẫu HTML của trang ${pageTitle()}.`);
   pageTemplates[page] = template.innerHTML;
   pageTitles[page] = source.body.dataset.title || source.title.split(" · ")[0];
@@ -417,13 +509,20 @@ async function ensurePageTemplate(page) {
   }
 }
 function examForm() {
-  if (!pageTemplates.createExam) return '<div class="panel">Đang tải giao diện tạo đề…</div>';
+  if (!pageTemplates.createExam)
+    return '<div class="panel">Đang tải giao diện tạo đề…</div>';
 
   const subjects = state.subjects
-    .map((item) => `<option value="${item.subject_id}">${esc(item.subject_name)}</option>`)
+    .map(
+      (item) =>
+        `<option value="${item.subject_id}">${esc(item.subject_name)}</option>`,
+    )
     .join("");
   const grades = state.grades
-    .map((item) => `<option value="${item.grade_id}">${esc(item.grade_name)}</option>`)
+    .map(
+      (item) =>
+        `<option value="${item.grade_id}">${esc(item.grade_name)}</option>`,
+    )
     .join("");
 
   return pageTemplates.createExam
@@ -444,12 +543,22 @@ function renderExamTable() {
   if (!rows) return;
   $("#examCount").textContent = `${state.exams.length} đề`;
   rows.innerHTML = state.exams.length
-    ? state.exams.map((exam) => `<tr><td><b>${esc(exam.title)}</b><span class="sub">Mã đề ${exam.exam_id}</span></td><td>${esc(state.subjects.find((item) => item.subject_id === exam.subject_id)?.subject_name || "—")} · ${esc(state.grades.find((item) => item.grade_id === exam.grade_id)?.grade_name || "—")}</td><td>${exam.duration_minutes} phút</td><td><span class="pill ${exam.status === "ready" ? "green" : "gray"}">${exam.status === "ready" ? "Sẵn sàng" : "Bản nháp"}</span></td><td><div class="row-actions"><button class="mini" data-action="preview-exam" data-id="${exam.exam_id}">Xem đề</button><button class="mini" data-action="download-exam" data-id="${exam.exam_id}">Tải đề gốc</button></div></td></tr>`).join("")
+    ? state.exams
+        .map(
+          (exam) =>
+            `<tr><td><b>${esc(exam.title)}</b><span class="sub">Mã đề ${exam.exam_id}</span></td><td>${esc(state.subjects.find((item) => item.subject_id === exam.subject_id)?.subject_name || "—")} · ${esc(state.grades.find((item) => item.grade_id === exam.grade_id)?.grade_name || "—")}</td><td>${exam.duration_minutes} phút</td><td><span class="pill ${exam.status === "ready" ? "green" : "gray"}">${exam.status === "ready" ? "Sẵn sàng" : "Bản nháp"}</span></td><td><div class="row-actions"><button class="mini" data-action="preview-exam" data-id="${exam.exam_id}">Xem đề</button><button class="mini" data-action="download-exam" data-id="${exam.exam_id}">Tải đề gốc</button></div></td></tr>`,
+        )
+        .join("")
     : '<tr><td colspan="5" class="empty">Chưa có đề. Bắt đầu bằng cách tạo đề mới.</td></tr>';
 }
 function shufflePage() {
   const readyExams = state.exams.filter((exam) => exam.status === "ready");
-  const examOptions = readyExams.map((exam) => `<option value="${exam.exam_id}">${esc(exam.title)} · ${exam.duration_minutes} phút</option>`).join("");
+  const examOptions = readyExams
+    .map(
+      (exam) =>
+        `<option value="${exam.exam_id}">${esc(exam.title)} · ${exam.duration_minutes} phút</option>`,
+    )
+    .join("");
   return fillTemplate("shuffle", {
     PAPER_CODE_PREFIX: esc(state.shuffle.paper_code_prefix),
     PAPER_CODE_LENGTH: state.shuffle.paper_code_length,
@@ -463,12 +572,22 @@ function roomsPage() {
   return fillTemplate("rooms", {});
 }
 function renderRoomsTable() {
-  const labels = { scheduled: "Đã lên lịch", ongoing: "Đang thi", completed: "Đã kết thúc", cancelled: "Đã hủy" };
+  const labels = {
+    scheduled: "Đã lên lịch",
+    ongoing: "Đang thi",
+    completed: "Đã kết thúc",
+    cancelled: "Đã hủy",
+  };
   const rows = $("#sessionRows");
   if (!rows) return;
   $("#sessionCount").textContent = `${state.sessions.length} phòng thi`;
   rows.innerHTML = state.sessions.length
-    ? state.sessions.map((session) => `<tr><td><b>${esc(session.session_name)}</b><span class="sub">Phòng #${session.session_id}</span></td><td>${esc(state.exams.find((exam) => exam.exam_id === session.exam_id)?.title || "Đề #" + session.exam_id)}</td><td><b>${esc(session.access_code || "—")}</b></td><td>${esc(fmtDate(session.start_time))}</td><td><span class="pill ${session.status === "ongoing" ? "green" : "gray"}">${labels[session.status] || session.status}</span></td><td><button class="mini" data-action="manage-room" data-id="${session.session_id}">Quản lý</button> ${session.status === "scheduled" ? `<button class="mini" data-action="room-status" data-id="${session.session_id}" data-status="ongoing">Mở phòng</button>` : session.status === "ongoing" ? `<button class="mini" data-action="room-status" data-id="${session.session_id}" data-status="completed">Kết thúc</button>` : session.status === "completed" ? `<button class="mini" data-action="download-results" data-id="${session.session_id}">Lấy file kết quả</button>` : ""}</td></tr>`).join("")
+    ? state.sessions
+        .map(
+          (session) =>
+            `<tr><td><b>${esc(session.session_name)}</b><span class="sub">Phòng #${session.session_id}</span></td><td>${esc(state.exams.find((exam) => exam.exam_id === session.exam_id)?.title || "Đề #" + session.exam_id)}</td><td><b>${esc(session.access_code || "—")}</b></td><td>${esc(fmtDate(session.start_time))}</td><td><span class="pill ${session.status === "ongoing" ? "green" : "gray"}">${labels[session.status] || session.status}</span></td><td><button class="mini" data-action="manage-room" data-id="${session.session_id}">Quản lý</button> ${session.status === "scheduled" ? `<button class="mini" data-action="room-status" data-id="${session.session_id}" data-status="ongoing">Mở phòng</button>` : session.status === "ongoing" ? `<button class="mini" data-action="room-status" data-id="${session.session_id}" data-status="completed">Kết thúc</button>` : session.status === "completed" ? `<button class="mini" data-action="download-results" data-id="${session.session_id}">Lấy file kết quả</button>` : ""}</td></tr>`,
+        )
+        .join("")
     : '<tr><td colspan="6" class="empty">Chưa có phòng thi nào.</td></tr>';
 }
 function roomForm() {
@@ -480,11 +599,13 @@ function roomManage(s, roster = []) {
 }
 function examPage() {
   return '<main class="student-stage"><div class="student-box"><div class="panel question-card">Đang tải bài thi…</div></div></main>';
-}function render() {
+}
+function render() {
   const app = $("#app");
   if (state.page === "exam" && !state.studentToken) state.page = "join";
   sessionStorage.setItem("appLastPage", state.page);
-  if (state.page === "users" && state.user?.role !== "admin") state.page = "dashboard";
+  if (state.page === "users" && state.user?.role !== "admin")
+    state.page = "dashboard";
   if (
     !state.token &&
     [
@@ -510,7 +631,9 @@ function examPage() {
   }
   if (state.page === "join") {
     const code = new URLSearchParams(location.search).get("code");
-    location.replace(`/student-join.html${code ? `?code=${encodeURIComponent(code)}` : ""}`);
+    location.replace(
+      `/student-join.html${code ? `?code=${encodeURIComponent(code)}` : ""}`,
+    );
     return;
   }
   app.innerHTML =
@@ -714,7 +837,7 @@ function attachPageEvents() {
   const app = $("#app"),
     modalEl = $("#modal");
   const click = async (e) => {
-    const b = e.target.closest("[data-page],[data-action]");
+    const b = e.target.closest("[data-page]:not(body),[data-action]");
     if (!b) return;
     const page = b.dataset.page,
       act = b.dataset.action;
@@ -835,7 +958,9 @@ function attachPageEvents() {
           body: JSON.stringify({ is_public: isPublic }),
         });
         await loadQuestions();
-        toast(isPublic ? "Đã công khai câu hỏi" : "Đã chuyển câu hỏi sang riêng tư");
+        toast(
+          isPublic ? "Đã công khai câu hỏi" : "Đã chuyển câu hỏi sang riêng tư",
+        );
       } else if (act === "toggle-question") {
         await api(`/api/questions/${b.dataset.id}/active`, {
           method: "PATCH",
@@ -1035,7 +1160,12 @@ function attachPageEvents() {
         const d = formDataObject(form);
         await api("/api/users", {
           method: "POST",
-          body: JSON.stringify({ username: d.username.trim(), full_name: d.full_name.trim(), password: d.password, role: "teacher" }),
+          body: JSON.stringify({
+            username: d.username.trim(),
+            full_name: d.full_name.trim(),
+            password: d.password,
+            role: "teacher",
+          }),
         });
         const list = await api("/api/users");
         state.users = list.users || [];
@@ -1045,7 +1175,11 @@ function attachPageEvents() {
         const d = formDataObject(form);
         await api("/api/classes", {
           method: "POST",
-          body: JSON.stringify({ class_name: d.class_name.trim(), grade_id: Number(d.grade_id), school_year: d.school_year.trim() || null }),
+          body: JSON.stringify({
+            class_name: d.class_name.trim(),
+            grade_id: Number(d.grade_id),
+            school_year: d.school_year.trim() || null,
+          }),
         });
         const list = await api("/api/classes");
         state.classes = list.classes || [];
@@ -1473,7 +1607,11 @@ if (state.token && state.page !== "exam") {
   state.page = "dashboard";
   render();
   loadCatalog()
-    .then(() => go(firstPage === "home" || firstPage === "login" ? "dashboard" : firstPage))
+    .then(() =>
+      go(
+        firstPage === "home" || firstPage === "login" ? "dashboard" : firstPage,
+      ),
+    )
     .catch(() => {
       state.token = "";
       sessionStorage.removeItem("examToken");
@@ -1482,20 +1620,25 @@ if (state.token && state.page !== "exam") {
     });
 } else if (
   state.studentToken &&
-  (state.page === "exam" || Number(sessionStorage.getItem("examReloadIntentUntil") || 0) > Date.now())
+  (state.page === "exam" ||
+    Number(sessionStorage.getItem("examReloadIntentUntil") || 0) > Date.now())
 ) {
   sessionStorage.removeItem("examReloadIntentUntil");
-  document.addEventListener("DOMContentLoaded", () => {
-    state.page = "exam";
-    render();
-    window.startExam().catch((error) => {
-      state.studentToken = "";
-      sessionStorage.removeItem("studentToken");
-      state.page = "join";
+  document.addEventListener(
+    "DOMContentLoaded",
+    () => {
+      state.page = "exam";
       render();
-      toast(error.message);
-    });
-  }, { once: true });
+      window.startExam().catch((error) => {
+        state.studentToken = "";
+        sessionStorage.removeItem("studentToken");
+        state.page = "join";
+        render();
+        toast(error.message);
+      });
+    },
+    { once: true },
+  );
 } else if (state.studentToken || state.page === "exam") {
   state.studentToken = "";
   sessionStorage.removeItem("studentToken");
