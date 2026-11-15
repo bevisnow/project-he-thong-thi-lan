@@ -338,6 +338,7 @@ def _rate_limit_bucket(path: str):
         return "upload"
     return None
 
+
 @app.middleware("http")
 async def add_security_headers(request, call_next):
     path = request.url.path
@@ -431,7 +432,7 @@ def create_access_token(data: dict):
 
     return encoded_jwt
 
-
+# hàm tạo và cấp cặp token
 def issue_token_pair(conn, subject: str, claims: dict, response: Response, request: Request):
     access_token = create_access_token({"sub": subject, **claims})
     jti = secrets.token_urlsafe(32)
@@ -462,9 +463,7 @@ def issue_token_pair(conn, subject: str, claims: dict, response: Response, reque
     return access_token
 
 
-def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
-):
+def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),):
     token = credentials.credentials
     credentials_exception = HTTPException(
         status_code=401,

@@ -313,7 +313,16 @@ function renderClassTable() {
     ? state.classes
         .map(
           (item) =>
-            `<tr><td><b>${esc(item.class_name)}</b></td><td>${esc(state.grades.find((grade) => grade.grade_id === item.grade_id)?.grade_name || "—")}</td><td>${esc(item.school_year || "—")}</td><td><span class="pill ${item.is_active ? "green" : "gray"}">${item.is_active ? "Đang dùng" : "Đã tắt"}</span></td></tr>`,
+            `<tr>
+                <td>
+                  <b>${esc(item.class_name)}</b>
+                </td>
+                <td>${esc(state.grades.find((grade) => grade.grade_id === item.grade_id)?.grade_name || "—")}</td>
+                <td>${esc(item.school_year || "—")}</td>
+                <td>
+                  <span class="pill ${item.is_active ? "green" : "gray"}">${item.is_active ? "Đang dùng" : "Đã tắt"}</span>
+                </td>
+              </tr>`,
         )
         .join("")
     : '<tr><td colspan="4" class="empty">Chưa có lớp học.</td></tr>';
@@ -328,7 +337,13 @@ function renderUserTable() {
     ? state.users
         .map(
           (user) =>
-            `<tr><td>${esc(user.username)}</td><td>${esc(user.full_name)}</td><td>${user.role === "admin" ? "Quản trị viên" : "Giáo viên"}</td><td>${user.is_active ? "Đang hoạt động" : "Đã khóa"}</td><td>${esc(user.created_at)}</td></tr>`,
+            `<tr>
+                <td>${esc(user.username)}</td>
+                <td>${esc(user.full_name)}</td>
+                <td>${user.role === "admin" ? "Quản trị viên" : "Giáo viên"}</td>
+                <td>${user.is_active ? "Đang hoạt động" : "Đã khóa"}</td>
+                <td>${esc(user.created_at)}</td>
+              </tr>`,
         )
         .join("")
     : '<tr><td colspan="5" class="empty">Chưa có tài khoản.</td></tr>';
@@ -371,7 +386,35 @@ function renderQuestionsTable() {
     ? state.questions
         .map(
           (q) =>
-            `<tr><td><div class="qtext">${questionTextHtml(q.question_text)}</div><span class="sub">Q-${q.question_id}</span></td><td>${esc(state.subjects.find((x) => x.subject_id === q.subject_id)?.subject_name || "—")}<span class="sub">${esc(state.grades.find((x) => x.grade_id === q.grade_id)?.grade_name || "—")}</span></td><td><span class="pill">${typeName[q.question_type] || q.question_type}</span></td><td><span class="pill gray">${diffName[q.difficulty] || q.difficulty}</span></td><td><span class="pill ${q.is_public ? "green" : "gray"}">${q.is_public ? "Công khai" : "Riêng tư"}</span></td><td><span class="pill ${q.is_active ? "green" : "gray"}">${q.is_active ? "Đang dùng" : "Đã tắt"}</span></td><td><div class="row-actions">${q.can_manage ? `<button class="mini" data-action="edit-question" data-id="${q.question_id}">Sửa</button><button class="mini" data-action="toggle-question-visibility" data-id="${q.question_id}" data-public="${q.is_public ? 0 : 1}">${q.is_public ? "Chuyển riêng tư" : "Chuyển công khai"}</button><button class="mini" data-action="toggle-question" data-id="${q.question_id}" data-active="${q.is_active ? 0 : 1}">${q.is_active ? "Tắt" : "Bật"}</button>` : `<button class="mini" data-action="edit-question" data-id="${q.question_id}">Xem</button>`}</div></td></tr>`,
+            `<tr>
+                <td>
+                  <div class="qtext">${questionTextHtml(q.question_text)}</div>
+                  <span class="sub">Q-${q.question_id}</span>
+                </td>
+                <td>${esc(state.subjects.find((x) => x.subject_id === q.subject_id)?.subject_name || "—")}
+                    <span class="sub">${esc(state.grades.find((x) => x.grade_id === q.grade_id)?.grade_name || "—")}
+                    </span>
+                </td>
+                <td>
+                  <span class="pill">${typeName[q.question_type] || q.question_type}</span>
+                </td>
+                <td>
+                  <span class="pill gray">${diffName[q.difficulty] || q.difficulty}</span>
+                </td>
+                <td>
+                  <span class="pill ${q.is_public ? "green" : "gray"}">${q.is_public ? "Công khai" : "Riêng tư"}</span>
+                </td>
+                <td>
+                  <span class="pill ${q.is_active ? "green" : "gray"}">${q.is_active ? "Đang dùng" : "Đã tắt"}</span>
+                </td>
+                <td>
+                  <div class="row-actions">${q.can_manage ? `<button class="mini" data-action="edit-question" data-id="${q.question_id}">Sửa</button>
+                    <button class="mini" data-action="toggle-question-visibility" data-id="${q.question_id}" data-public="${q.is_public ? 0 : 1}">${q.is_public ? "Chuyển riêng tư" : "Chuyển công khai"}</button>
+                    <button class="mini" data-action="toggle-question" data-id="${q.question_id}" data-active="${q.is_active ? 0 : 1}">${q.is_active ? "Tắt" : "Bật"}
+                      </button>` : `<button class="mini" data-action="edit-question" data-id="${q.question_id}">Xem</button>`}
+                      </div>
+                </td>
+              </tr>`,
         )
         .join("")
     : '<tr><td colspan="7" class="empty">Không có câu hỏi phù hợp. Thử thay đổi bộ lọc hoặc thêm câu mới.</td></tr>';
@@ -384,7 +427,42 @@ function publicQuestionView(q) {
       .map((o) => `${o.option_key}. ${o.option_text}`),
     ...(q.accepted_answers || []).map((a) => a.answer_text),
   ];
-  return `<div class="dialog"><div class="dialog-head"><div><span class="eyebrow">CÂU HỎI CÔNG KHAI</span><h2>Chỉ xem</h2></div><button class="mini" data-action="close-modal">Đóng</button></div><div class="dialog-body"><p>${questionTextHtml(question.question_text)}</p><div>${(q.options || []).map((o) => `<p>${esc(o.option_key)}. ${esc(o.option_text)}${o.is_correct ? " (đáp án đúng)" : ""}</p>`).join("")}</div>${answers.length ? `<p><b>Đáp án:</b> ${answers.map(esc).join("; ")}</p>` : ""}<p class="muted">Câu hỏi này do giáo viên khác chia sẻ. Bạn có thể dùng trong đề của mình nhưng không thể sửa hoặc đổi quyền chia sẻ.</p></div></div>`;
+
+  return `
+    <div class="dialog">
+      <div class="dialog-head">
+        <div>
+          <span class="eyebrow">CÂU HỎI CÔNG KHAI</span>
+          <h2>Chỉ xem</h2>
+        </div>
+        <button class="mini" data-action="close-modal">Đóng</button>
+      </div>
+      <div class="dialog-body">
+        <p>${questionTextHtml(question.question_text)}</p>
+        <div>
+          ${(q.options || [])
+            .map(
+              (o) => `
+                <p>
+                  ${esc(o.option_key)}. ${esc(o.option_text)}${
+                    o.is_correct ? " (đáp án đúng)" : ""
+                  }
+                </p>
+              `,
+            )
+            .join("")}
+        </div>
+        ${
+          answers.length
+            ? `<p><b>Đáp án:</b> ${answers.map(esc).join("; ")}</p>`
+            : ""
+        }
+        <p class="muted">
+          Câu hỏi này do giáo viên khác chia sẻ. Bạn có thể dùng trong đề của mình nhưng không thể sửa hoặc đổi quyền chia sẻ.
+        </p>
+      </div>
+    </div>
+  `;
 }
 
 function questionForm(q = null) {
@@ -392,7 +470,36 @@ function questionForm(q = null) {
   const accepted = (q?.accepted_answers || [])
     .map((x) => x.answer_text)
     .join("; ");
-  return `<div class="dialog"><div class="dialog-head"><div><span class="eyebrow">NGÂN HÀNG CÂU HỎI</span><h2>${q ? "Sửa câu hỏi" : "Thêm câu hỏi"}</h2></div><button class="mini" data-action="close-modal">Đóng</button></div><div class="dialog-body"><form id="questionForm" data-id="${q?.question?.question_id || ""}"><div class="form-grid two"><label class="field">Khối lớp<select name="grade_id" required>${state.grades.map((x) => `<option value="${x.grade_id}" ${x.grade_id === q?.question?.grade_id ? "selected" : ""}>${esc(x.grade_name)}</option>`).join("")}</select></label><label class="field">Môn học<select name="subject_id" required>${state.subjects.map((x) => `<option value="${x.subject_id}" ${x.subject_id === q?.question?.subject_id ? "selected" : ""}>${esc(x.subject_name)}</option>`).join("")}</select><button type="button" class="mini catalog-add" data-action="add-subject">Thêm môn học</button></label><label class="field">Chủ đề<select name="topic_id" id="formTopic" required><option value="">Chọn chủ đề</option></select><button type="button" class="mini catalog-add" data-action="add-topic">Thêm chủ đề</button></label><label class="field">Bài học<select name="lesson_id" id="formLesson"><option value="">Không chọn bài học</option></select></label><label class="field">Dạng câu<select name="question_type" id="formType">${Object.entries(
+  return `<div class="dialog">
+      <div class="dialog-head">
+        <div>
+          <span class="eyebrow">NGÂN HÀNG CÂU HỎI</span>
+          <h2>${q ? "Sửa câu hỏi" : "Thêm câu hỏi"}</h2>
+        </div>
+        <button class="mini" data-action="close-modal">Đóng</button>
+      </div>
+      <div class="dialog-body">
+        <form id="questionForm" data-id="${q?.question?.question_id || ""}">
+          <div class="form-grid two">
+            <label class="field">Khối lớp<select name="grade_id" required>${state.grades.map((x) => `<option value="${x.grade_id}" ${x.grade_id === q?.question?.grade_id ? "selected" : ""}>${esc(x.grade_name)}
+                  </option>`).join("")}
+                </select>
+            </label>
+            <label class="field">Môn học<select name="subject_id" required>${state.subjects.map((x) => `<option value="${x.subject_id}" ${x.subject_id === q?.question?.subject_id ? "selected" : ""}>${esc(x.subject_name)}
+                  </option>`).join("")}
+                </select>
+              <button type="button" class="mini catalog-add" data-action="add-subject">Thêm môn học</button>
+            </label>
+            <label class="field">Chủ đề<select name="topic_id" id="formTopic" required>
+                <option value="">Chọn chủ đề</option>
+              </select>
+              <button type="button" class="mini catalog-add" data-action="add-topic">Thêm chủ đề</button>
+            </label>
+            <label class="field">Bài học<select name="lesson_id" id="formLesson">
+                <option value="">Không chọn bài học</option>
+              </select>
+            </label>
+            <label class="field">Dạng câu<select name="question_type" id="formType">${Object.entries(
     typeName,
   )
     .map(
@@ -410,16 +517,52 @@ function questionForm(q = null) {
     )
     .join(
       "",
-    )}</select></label><label class="field full-width">Nội dung<textarea name="question_text" required>${esc(q?.question?.question_text || "")}</textarea></label><label class="field full-width">Giải thích / lời giải<textarea name="explanation">${esc(q?.question?.explanation || "")}</textarea></label></div><div class="spacer"></div><label class="inline-check"><input name="is_public" type="checkbox" ${q?.question?.is_public ? "checked" : ""}> Công khai câu hỏi với các giáo viên khác</label><p class="muted">Câu riêng tư chỉ bạn và admin xem được.</p><div id="answerFields"></div><div id="formError" class="error"></div><div class="form-actions"><button type="button" class="secondary" data-action="close-modal">Hủy</button><button class="primary" type="submit">${q ? "Lưu thay đổi" : "Tạo câu hỏi"}</button></div></form></div></div>`;
+    )}</select>
+      </label>
+      <label class="field full-width">Nội dung<textarea name="question_text" required>${esc(q?.question?.question_text || "")}
+          </textarea>
+      </label>
+      <label class="field full-width">Giải thích / lời giải<textarea name="explanation">${esc(q?.question?.explanation || "")}
+          </textarea>
+      </label>
+      </div>
+      <label class="field full-width">Ảnh minh họa<input name="image_files" type="file" accept=".png,.jpg,.jpeg,.gif,.webp" multiple>
+        <small class="muted">Có thể chọn nhiều ảnh PNG, JPG, GIF hoặc WebP; tối đa 5 MB mỗi ảnh.</small>
+      </label>${(q?.media || []).filter((m) => m.media_type === "image").map((m) => `<img class="question-inline-image" src="${esc(state.base.replace(/\/$/, ""))}${esc(m.image_url || "")}" alt="Ảnh câu hỏi">`).join("")}
+        <div class="spacer">
+      </div>
+      <label class="inline-check">
+        <input name="is_public" type="checkbox" ${q?.question?.is_public ? "checked" : ""}> Công khai câu hỏi với các giáo viên khác</label>
+      <p class="muted">Câu riêng tư chỉ bạn và admin xem được.</p>
+      <div id="answerFields">
+      </div>
+      <div id="formError" class="error">
+      </div>
+      <div class="form-actions">
+        <button type="button" class="secondary" data-action="close-modal">Hủy</button>
+        <button class="primary" type="submit">${q ? "Lưu thay đổi" : "Tạo câu hỏi"}</button>
+      </div>
+      </form>
+      </div>
+      </div>`;
 }
 function paintAnswerFields(type, opts = [], accepted = "") {
   const el = $("#answerFields");
   if (!el) return;
   if (type === "short_answer") {
-    el.innerHTML = `<label class="field">Đáp án được chấp nhận <small class="muted">Ngăn cách nhiều đáp án bằng dấu chấm phẩy</small><input name="accepted_answers" value="${esc(accepted)}" placeholder="Hà Nội; Ha Noi"></label>`;
+    el.innerHTML = `<label class="field">Đáp án được chấp nhận <small class="muted">Ngăn cách nhiều đáp án bằng dấu chấm phẩy</small>
+        <input name="accepted_answers" value="${esc(accepted)}" placeholder="Hà Nội; Ha Noi">
+      </label>`;
     return;
   }
-  el.innerHTML = `<div class="spacer"></div><div class="panel-head answer-fields-heading"><div><h2>${type === "true_false" ? "Các mệnh đề đúng / sai" : "Các phương án trả lời"}</h2><p>${type === "true_false" ? "Đánh dấu đúng cho từng mệnh đề." : "Chọn một đáp án đúng."}</p></div></div>${[
+  el.innerHTML = `<div class="spacer">
+    </div>
+    <div class="panel-head answer-fields-heading">
+      <div>
+        <h2>${type === "true_false" ? "Các mệnh đề đúng / sai" : "Các phương án trả lời"}</h2>
+        <p>${type === "true_false" ? "Đánh dấu đúng cho từng mệnh đề." : "Chọn một đáp án đúng."}</p>
+      </div>
+    </div>${[
     "A",
     "B",
     "C",
@@ -546,7 +689,23 @@ function renderExamTable() {
     ? state.exams
         .map(
           (exam) =>
-            `<tr><td><b>${esc(exam.title)}</b><span class="sub">Mã đề ${exam.exam_id}</span></td><td>${esc(state.subjects.find((item) => item.subject_id === exam.subject_id)?.subject_name || "—")} · ${esc(state.grades.find((item) => item.grade_id === exam.grade_id)?.grade_name || "—")}</td><td>${exam.duration_minutes} phút</td><td><span class="pill ${exam.status === "ready" ? "green" : "gray"}">${exam.status === "ready" ? "Sẵn sàng" : "Bản nháp"}</span></td><td><div class="row-actions"><button class="mini" data-action="preview-exam" data-id="${exam.exam_id}">Xem đề</button><button class="mini" data-action="download-exam" data-id="${exam.exam_id}">Tải đề gốc</button></div></td></tr>`,
+            `<tr>
+                <td>
+                  <b>${esc(exam.title)}</b>
+                  <span class="sub">Mã đề ${exam.exam_id}</span>
+                </td>
+                <td>${esc(state.subjects.find((item) => item.subject_id === exam.subject_id)?.subject_name || "—")} · ${esc(state.grades.find((item) => item.grade_id === exam.grade_id)?.grade_name || "—")}</td>
+                <td>${exam.duration_minutes} phút</td>
+                <td>
+                  <span class="pill ${exam.status === "ready" ? "green" : "gray"}">${exam.status === "ready" ? "Sẵn sàng" : "Bản nháp"}</span>
+                </td>
+                <td>
+                  <div class="row-actions">
+                    <button class="mini" data-action="preview-exam" data-id="${exam.exam_id}">Xem đề</button>
+                    <button class="mini" data-action="download-exam" data-id="${exam.exam_id}">Tải đề gốc</button>
+                  </div>
+                </td>
+              </tr>`,
         )
         .join("")
     : '<tr><td colspan="5" class="empty">Chưa có đề. Bắt đầu bằng cách tạo đề mới.</td></tr>';
@@ -585,20 +744,137 @@ function renderRoomsTable() {
     ? state.sessions
         .map(
           (session) =>
-            `<tr><td><b>${esc(session.session_name)}</b><span class="sub">Phòng #${session.session_id}</span></td><td>${esc(state.exams.find((exam) => exam.exam_id === session.exam_id)?.title || "Đề #" + session.exam_id)}</td><td><b>${esc(session.access_code || "—")}</b></td><td>${esc(fmtDate(session.start_time))}</td><td><span class="pill ${session.status === "ongoing" ? "green" : "gray"}">${labels[session.status] || session.status}</span></td><td><button class="mini" data-action="manage-room" data-id="${session.session_id}">Quản lý</button> ${session.status === "scheduled" ? `<button class="mini" data-action="room-status" data-id="${session.session_id}" data-status="ongoing">Mở phòng</button>` : session.status === "ongoing" ? `<button class="mini" data-action="room-status" data-id="${session.session_id}" data-status="completed">Kết thúc</button>` : session.status === "completed" ? `<button class="mini" data-action="download-results" data-id="${session.session_id}">Lấy file kết quả</button>` : ""}</td></tr>`,
+            `<tr>
+                <td>
+                  <b>${esc(session.session_name)}</b>
+                  <span class="sub">Phòng #${session.session_id}</span>
+                </td>
+                <td>${esc(state.exams.find((exam) => exam.exam_id === session.exam_id)?.title || "Đề #" + session.exam_id)}</td>
+                <td>
+                  <b>${esc(session.access_code || "—")}</b>
+                </td>
+                <td>${esc(fmtDate(session.start_time))}</td>
+                <td>
+                  <span class="pill ${session.status === "ongoing" ? "green" : "gray"}">${labels[session.status] || session.status}</span>
+                </td>
+                <td>
+                  <button class="mini" data-action="manage-room" data-id="${session.session_id}">Quản lý</button> ${session.status === "scheduled" ? `<button class="mini" data-action="room-status" data-id="${session.session_id}" data-status="ongoing">Mở phòng</button>` : session.status === "ongoing" ? `<button class="mini" data-action="room-status" data-id="${session.session_id}" data-status="completed">Kết thúc</button>` : session.status === "completed" ? `<button class="mini" data-action="download-results" data-id="${session.session_id}">Lấy file kết quả</button>` : ""}
+                    </td>
+              </tr>`,
         )
         .join("")
     : '<tr><td colspan="6" class="empty">Chưa có phòng thi nào.</td></tr>';
 }
 function roomForm() {
   const ready = state.exams.filter((x) => x.status === "ready");
-  return `<div class="dialog"><div class="dialog-head"><div><span class="eyebrow">TỔ CHỨC THI</span><h2>Tạo phòng thi</h2></div><button class="mini" data-action="close-modal">Đóng</button></div><div class="dialog-body"><form id="roomForm"><div class="form-grid two"><label class="field">Tên phòng<input name="session_name" required placeholder="Ví dụ: Ca sáng 10A1"></label><label class="field">Đề thi<select name="exam_id" required><option value="">Chọn đề đã lưu</option>${ready.map((e) => `<option value="${e.exam_id}" ${state.selectedExam === e.exam_id ? "selected" : ""}>${esc(e.title)} · ${e.duration_minutes} phút</option>`).join("")}</select></label><label class="field">Bắt đầu<input name="start_time" type="datetime-local"></label><label class="field">Kết thúc<input name="end_time" type="datetime-local"></label><p class="muted full-width">Đặt giờ bắt đầu để phòng tự mở đúng lịch; bỏ trống nếu muốn mở thủ công.</p><label class="field full-width">Mật khẩu phòng (nếu cần)<input name="password" type="password" minlength="4"></label></div><div class="spacer"></div><label class="inline-check"><input type="checkbox" name="shuffle_questions" ${state.shuffle.shuffle_questions ? "checked" : ""}> Trộn câu hỏi</label><div class="spacer"></div><label class="inline-check"><input type="checkbox" name="shuffle_options" ${state.shuffle.shuffle_options ? "checked" : ""}> Trộn phương án</label><div id="roomError" class="error"></div><div class="form-actions"><button type="button" class="secondary" data-action="close-modal">Hủy</button><button class="primary">Tạo phòng</button></div></form></div></div>`;
+  return `<div class="dialog">
+      <div class="dialog-head">
+        <div>
+          <span class="eyebrow">TỔ CHỨC THI</span>
+          <h2>Tạo phòng thi</h2>
+        </div>
+        <button class="mini" data-action="close-modal">Đóng</button>
+      </div>
+      <div class="dialog-body">
+        <form id="roomForm">
+          <div class="form-grid two">
+            <label class="field">Tên phòng<input name="session_name" required placeholder="Ví dụ: Ca sáng 10A1">
+            </label>
+            <label class="field">Đề thi<select name="exam_id" required>
+                <option value="">Chọn đề đã lưu</option>${ready.map((e) => `<option value="${e.exam_id}" ${state.selectedExam === e.exam_id ? "selected" : ""}>${esc(e.title)} · ${e.duration_minutes} phút</option>`).join("")}
+                  </select>
+            </label>
+            <label class="field">Bắt đầu<input name="start_time" type="datetime-local">
+            </label>
+            <label class="field">Kết thúc<input name="end_time" type="datetime-local">
+            </label>
+            <p class="muted full-width">Đặt giờ bắt đầu để phòng tự mở đúng lịch; bỏ trống nếu muốn mở thủ công.</p>
+            <label class="field full-width">Mật khẩu phòng (nếu cần)<input name="password" type="password" minlength="4">
+            </label>
+          </div>
+          <div class="spacer">
+          </div>
+          <label class="inline-check">
+            <input type="checkbox" name="shuffle_questions" ${state.shuffle.shuffle_questions ? "checked" : ""}> Trộn câu hỏi</label>
+          <div class="spacer">
+          </div>
+          <label class="inline-check">
+            <input type="checkbox" name="shuffle_options" ${state.shuffle.shuffle_options ? "checked" : ""}> Trộn phương án</label>
+          <div id="roomError" class="error">
+          </div>
+          <div class="form-actions">
+            <button type="button" class="secondary" data-action="close-modal">Hủy</button>
+            <button class="primary">Tạo phòng</button>
+          </div>
+        </form>
+      </div>
+    </div>`;
 }
 function roomManage(s, roster = []) {
-  return `<div class="dialog"><div class="dialog-head"><div><span class="eyebrow">QUẢN LÝ CA THI</span><h2>${esc(s.session_name)}</h2></div><button class="mini" data-action="close-modal">Đóng</button></div><div class="dialog-body"><div class="notice">Mã phòng dành cho học sinh</div><div class="join-code">${esc(s.access_code || "—")}</div><p class="muted">${esc(s.join_url || "")}</p><p class="muted">Trạng thái: <b>${esc(s.status)}</b></p><div class="room-qr"><img src="${esc(s.qr_data_url || "")}" alt="QR vào phòng thi"><a class="secondary" href="${esc(s.qr_data_url || "")}" download="qr-phong-${s.session_id}.png">Tải QR dạng ảnh</a><p class="muted">QR chỉ cho phép vào trong 15 phút từ giờ bắt đầu. Học sinh đã vào tiếp tục làm bài bình thường.</p></div><section class="panel-body"><h3>Mật khẩu phòng</h3><p class="muted">${s.has_password ? "Phòng đang có mật khẩu. Mật khẩu cũ được mã hóa nên không xem lại được; bạn có thể đặt mật khẩu mới." : "Phòng hiện không có mật khẩu."}</p><form id="roomPasswordForm" data-id="${s.session_id}" class="form-grid two"><label class="field">Mật khẩu mới<input name="password" type="password" minlength="8" maxlength="128" required placeholder="Ít nhất 8 ký tự"></label><button class="secondary align-end">Đặt mật khẩu mới</button><div id="passwordError" class="error"></div></form></section><div class="form-actions"><a class="secondary" href="${esc(state.base)}/api/templates/students.docx" target="_blank" rel="noreferrer">Tải mẫu danh sách</a><button class="primary" data-action="import-students" data-id="${s.session_id}">Import học sinh</button>${s.status === "completed" || s.status === "ongoing" ? `<button class="secondary" data-action="download-results" data-id="${s.session_id}">Lấy file kết quả</button>` : ""}</div><section class="panel-body"><h3>Danh sách học sinh (${roster.length})</h3>${roster.length ? `<div class="table-wrap"><table><thead><tr><th>MÃ HỌC SINH</th><th>HỌ VÀ TÊN</th><th>LỚP</th><th>TRẠNG THÁI</th></tr></thead><tbody>${roster.map((x) => `<tr><td>${esc(x.student_code)}</td><td>${esc(x.full_name)}</td><td>${esc(x.class_name || "—")}</td><td>${esc({ registered: "Chưa vào thi", in_progress: "Đang làm bài", submitted: "Đã nộp", absent: "Vắng", disqualified: "Bị loại" }[x.status] || x.status)}</td></tr>`).join("")}</tbody></table></div>` : '<p class="muted">Chưa có học sinh trong phòng. Hãy import danh sách.</p>'}</section><div id="rosterResult"></div></div></div>`;
+  return `<div class="dialog">
+      <div class="dialog-head">
+        <div>
+          <span class="eyebrow">QUẢN LÝ CA THI</span>
+          <h2>${esc(s.session_name)}</h2>
+        </div>
+        <button class="mini" data-action="close-modal">Đóng</button>
+      </div>
+      <div class="dialog-body">
+        <div class="notice">Mã phòng dành cho học sinh</div>
+        <div class="join-code">${esc(s.access_code || "—")}</div>
+        <p class="muted">${esc(s.join_url || "")}</p>
+        <p class="muted">Trạng thái: <b>${esc(s.status)}</b>
+        </p>
+        <div class="room-qr">
+          <img src="${esc(s.qr_data_url || "")}" alt="QR vào phòng thi">
+          <a class="secondary" href="${esc(s.qr_data_url || "")}" download="qr-phong-${s.session_id}.png">Tải QR dạng ảnh</a>
+          <p class="muted">QR chỉ cho phép vào trong 15 phút từ giờ bắt đầu. Học sinh đã vào tiếp tục làm bài bình thường.</p>
+        </div>
+        <section class="panel-body">
+          <h3>Mật khẩu phòng</h3>
+          <p class="muted">${s.has_password ? "Phòng đang có mật khẩu. Mật khẩu cũ được mã hóa nên không xem lại được; bạn có thể đặt mật khẩu mới." : "Phòng hiện không có mật khẩu."}</p>
+          <form id="roomPasswordForm" data-id="${s.session_id}" class="form-grid two">
+            <label class="field">Mật khẩu mới<input name="password" type="password" minlength="8" maxlength="128" required placeholder="Ít nhất 8 ký tự">
+            </label>
+            <button class="secondary align-end">Đặt mật khẩu mới</button>
+            <div id="passwordError" class="error">
+            </div>
+          </form>
+        </section>
+        <div class="form-actions">
+          <a class="secondary" href="${esc(state.base)}/api/templates/students.docx" target="_blank" rel="noreferrer">Tải mẫu danh sách</a>
+          <button class="primary" data-action="import-students" data-id="${s.session_id}">Import học sinh</button>${s.status === "completed" || s.status === "ongoing" ? `<button class="secondary" data-action="download-results" data-id="${s.session_id}">Lấy file kết quả</button>` : ""}
+            </div>
+        <section class="panel-body">
+          <h3>Danh sách học sinh (${roster.length})</h3>${roster.length ? `<div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>MÃ HỌC SINH</th>
+                  <th>HỌ VÀ TÊN</th>
+                  <th>LỚP</th>
+                  <th>TRẠNG THÁI</th>
+                </tr>
+              </thead>
+              <tbody>${roster.map((x) => `<tr>
+                  <td>${esc(x.student_code)}</td>
+                  <td>${esc(x.full_name)}</td>
+                  <td>${esc(x.class_name || "—")}</td>
+                  <td>${esc({ registered: "Chưa vào thi", in_progress: "Đang làm bài", submitted: "Đã nộp", absent: "Vắng", disqualified: "Bị loại" }[x.status] || x.status)}</td>
+                </tr>`).join("")}</tbody>
+            </table>
+          </div>` : '<p class="muted">Chưa có học sinh trong phòng. Hãy import danh sách.</p>'}</section>
+        <div id="rosterResult">
+        </div>
+      </div>
+    </div>`;
 }
 function examPage() {
-  return '<main class="student-stage"><div class="student-box"><div class="panel question-card">Đang tải bài thi…</div></div></main>';
+  return `<main class="student-stage">
+      <div class="student-box">
+        <div class="panel question-card">Đang tải bài thi…</div>
+      </div>
+    </main>`;
 }
 function render() {
   const app = $("#app");
@@ -827,7 +1103,20 @@ async function submitExam(auto = false) {
     state.exam = null;
     render();
     openModal(
-      `<div class="dialog"><div class="dialog-head"><div><span class="eyebrow">ĐÃ NỘP BÀI</span><h2>${auto ? "Bài thi đã được tự động nộp" : "Bài thi đã được ghi nhận"}</h2></div></div><div class="dialog-body"><p>Câu trả lời của bạn đã được lưu.</p><div class="form-actions"><button class="primary" data-action="close-modal">Hoàn tất</button></div></div></div>`,
+      `<div class="dialog">
+          <div class="dialog-head">
+            <div>
+              <span class="eyebrow">ĐÃ NỘP BÀI</span>
+              <h2>${auto ? "Bài thi đã được tự động nộp" : "Bài thi đã được ghi nhận"}</h2>
+            </div>
+          </div>
+          <div class="dialog-body">
+            <p>Câu trả lời của bạn đã được lưu.</p>
+            <div class="form-actions">
+              <button class="primary" data-action="close-modal">Hoàn tất</button>
+            </div>
+          </div>
+        </div>`,
     );
   } catch (err) {
     toast(err.message);
@@ -1298,7 +1587,7 @@ async function initQuestionForm(q = null) {
     (q?.accepted_answers || []).map((x) => x.answer_text).join("; "),
   );
 }
-function saveQuestion(form) {
+async function saveQuestion(form) {
   const fd = new FormData(form),
     type = fd.get("question_type"),
     opts = [],
@@ -1323,6 +1612,29 @@ function saveQuestion(form) {
         sort_order: i + 1,
       });
     }
+  const media = (state.editing?.media || []).map((item, index) => ({
+    media_type: item.media_type,
+    file_path: item.file_path,
+    sort_order: item.sort_order || index + 1,
+  }));
+  const files = [...form.elements.image_files.files];
+  if (media.length + files.length > 20)
+    throw Error("Mỗi câu hỏi đính kèm tối đa 20 tệp.");
+  for (const file of files) {
+    if (file.size > 5 * 1024 * 1024)
+      throw Error(`Ảnh ${file.name} vượt quá 5 MB.`);
+    const body = new FormData();
+    body.append("file", file);
+    const uploaded = await api("/api/questions/media", {
+      method: "POST",
+      body,
+    });
+    media.push({
+      media_type: "image",
+      file_path: uploaded.file_path,
+      sort_order: media.length + 1,
+    });
+  }
   const d = {
     subject_id: Number(fd.get("subject_id")),
     grade_id: Number(fd.get("grade_id")),
@@ -1336,7 +1648,7 @@ function saveQuestion(form) {
     is_public: Boolean(fd.get("is_public")),
     options,
     accepted_answers: accepted,
-    media: state.editing?.media || [],
+    media,
   };
   const id = form.dataset.id;
   return api(id ? `/api/questions/${id}` : "/api/questions", {
@@ -1382,10 +1694,51 @@ async function saveExamReady(examId) {
   }
 }
 function afterCreateExamChoices(id, title) {
-  return `<div class="dialog"><div class="dialog-head"><div><span class="eyebrow">ĐỀ GỐC ĐÃ TẠO</span><h2>${esc(title || "Đề thi")}</h2></div><button class="mini" data-action="close-modal">Đóng</button></div><div class="dialog-body"><p>Chọn bước tiếp theo. Nếu không chọn, đề đã được lưu trên máy chủ.</p><button class="choice-card" type="button" data-action="download-exam" data-id="${id}"><span><strong>Lưu file đề về máy</strong><small>Tải file Word đề gốc kèm đáp án</small></span></button><button class="choice-card" type="button" data-action="open-shuffle" data-id="${id}"><span><strong>Sinh đề</strong><small>Trộn câu hỏi, phương án và tạo mã đề cho phòng thi</small></span></button><div class="form-actions"><button class="secondary" data-action="close-modal">Để sau</button></div></div></div>`;
+  return `<div class="dialog">
+      <div class="dialog-head">
+        <div>
+          <span class="eyebrow">ĐỀ GỐC ĐÃ TẠO</span>
+          <h2>${esc(title || "Đề thi")}</h2>
+        </div>
+        <button class="mini" data-action="close-modal">Đóng</button>
+      </div>
+      <div class="dialog-body">
+        <p>Chọn bước tiếp theo. Nếu không chọn, đề đã được lưu trên máy chủ.</p>
+        <button class="choice-card" type="button" data-action="download-exam" data-id="${id}">
+          <span>
+            <strong>Lưu file đề về máy</strong>
+            <small>Tải file Word đề gốc kèm đáp án</small>
+          </span>
+        </button>
+        <button class="choice-card" type="button" data-action="open-shuffle" data-id="${id}">
+          <span>
+            <strong>Sinh đề</strong>
+            <small>Trộn câu hỏi, phương án và tạo mã đề cho phòng thi</small>
+          </span>
+        </button>
+        <div class="form-actions">
+          <button class="secondary" data-action="close-modal">Để sau</button>
+        </div>
+      </div>
+    </div>`;
 }
 function resultsReadyDialog(sid) {
-  return `<div class="dialog"><div class="dialog-head"><div><span class="eyebrow">ĐÃ CHẤM ĐIỂM</span><h2>File kết quả đã sẵn sàng</h2></div><button class="mini" data-action="close-modal">Đóng</button></div><div class="dialog-body"><p>Học sinh đã nộp bài và hệ thống đã chấm điểm. Giáo viên chỉ cần lấy file kết quả về máy.</p><div class="form-actions"><button class="secondary" data-action="close-modal">Để sau</button><button class="primary" data-action="download-results" data-id="${sid}">Lấy file kết quả</button></div></div></div>`;
+  return `<div class="dialog">
+      <div class="dialog-head">
+        <div>
+          <span class="eyebrow">ĐÃ CHẤM ĐIỂM</span>
+          <h2>File kết quả đã sẵn sàng</h2>
+        </div>
+        <button class="mini" data-action="close-modal">Đóng</button>
+      </div>
+      <div class="dialog-body">
+        <p>Học sinh đã nộp bài và hệ thống đã chấm điểm. Giáo viên chỉ cần lấy file kết quả về máy.</p>
+        <div class="form-actions">
+          <button class="secondary" data-action="close-modal">Để sau</button>
+          <button class="primary" data-action="download-results" data-id="${sid}">Lấy file kết quả</button>
+        </div>
+      </div>
+    </div>`;
 }
 async function createExam(form) {
   const d = formDataObject(form),
@@ -1428,22 +1781,142 @@ async function createExam(form) {
   toast("Đề gốc đã được lưu trên hệ thống.");
 }
 function previewMarkup(d, canSave = false) {
-  return `<div class="panel"><div class="panel-head"><div><h2>${esc(d.exam.title)} · Đề gốc</h2><p>${esc(d.exam.supervising_authority || "")} · ${esc(d.exam.school_name || "")} · ${d.questions?.length || 0} câu · ${d.exam.duration_minutes} phút</p></div><span class="pill ${d.exam.status === "ready" ? "green" : ""}">${d.exam.status === "ready" ? "Đã lưu" : "Bản nháp"}</span></div><div class="panel-body">${(d.questions || []).map((q, i) => `<div class="preview-question"><b>Câu ${i + 1} · ${typeName[q.question_type]} · ${diffName[q.difficulty]}</b><p>${questionTextHtml(q.question_text)}</p></div>`).join("")}<div class="form-actions"><button class="secondary" data-action="download-exam" data-id="${d.exam.exam_id}">Tải đề gốc</button>${canSave ? '<button class="primary" data-action="save-exam" data-id="' + d.exam.exam_id + '">Lưu đề để mở phòng</button>' : `<button class="primary" data-action="open-shuffle" data-id="${d.exam.exam_id}">Sinh đề</button>`}</div></div></div>`;
+  return `<div class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>${esc(d.exam.title)} · Đề gốc</h2>
+          <p>${esc(d.exam.supervising_authority || "")} · ${esc(d.exam.school_name || "")} · ${d.questions?.length || 0} câu · ${d.exam.duration_minutes} phút</p>
+        </div>
+        <span class="pill ${d.exam.status === "ready" ? "green" : ""}">${d.exam.status === "ready" ? "Đã lưu" : "Bản nháp"}</span>
+      </div>
+      <div class="panel-body">${(d.questions || []).map((q, i) => `<div class="preview-question">
+          <b>Câu ${i + 1} · ${typeName[q.question_type]} · ${diffName[q.difficulty]}</b>
+          <p>${questionTextHtml(q.question_text)}</p>
+        </div>`).join("")}<div class="form-actions">
+          <button class="secondary" data-action="download-exam" data-id="${d.exam.exam_id}">Tải đề gốc</button>${canSave ? '<button class="primary" data-action="save-exam" data-id="' + d.exam.exam_id + '">Lưu đề để mở phòng</button>' : `<button class="primary" data-action="open-shuffle" data-id="${d.exam.exam_id}">Sinh đề</button>`}
+            </div>
+      </div>
+    </div>`;
 }
 function previewExam(d) {
-  return `<div class="dialog"><div class="dialog-head"><div><span class="eyebrow">XEM TRƯỚC</span><h2>${esc(d.exam.title)}</h2></div><button class="mini" data-action="close-modal">Đóng</button></div><div class="dialog-body">${previewMarkup(d, d.exam.status !== "ready")}</div></div>`;
+  return `<div class="dialog">
+      <div class="dialog-head">
+        <div>
+          <span class="eyebrow">XEM TRƯỚC</span>
+          <h2>${esc(d.exam.title)}</h2>
+        </div>
+        <button class="mini" data-action="close-modal">Đóng</button>
+      </div>
+      <div class="dialog-body">${previewMarkup(d, d.exam.status !== "ready")}</div>
+    </div>`;
 }
 function confirmSubmitForm() {
-  return `<div class="dialog"><div class="dialog-head"><div><span class="eyebrow">HOÀN THÀNH BÀI THI</span><h2>Đã đến câu cuối</h2></div><button class="mini" data-action="close-modal">Đóng</button></div><div class="dialog-body"><p>Bạn đã trả lời ${Object.keys(state.answers).length} câu. Nộp bài ngay?</p><div class="form-actions"><button class="secondary" data-action="close-modal">Kiểm tra lại</button><button class="danger" data-action="confirm-submit">Nộp bài</button></div></div></div>`;
+  return `<div class="dialog">
+      <div class="dialog-head">
+        <div>
+          <span class="eyebrow">HOÀN THÀNH BÀI THI</span>
+          <h2>Đã đến câu cuối</h2>
+        </div>
+        <button class="mini" data-action="close-modal">Đóng</button>
+      </div>
+      <div class="dialog-body">
+        <p>Bạn đã trả lời ${Object.keys(state.answers).length} câu. Nộp bài ngay?</p>
+        <div class="form-actions">
+          <button class="secondary" data-action="close-modal">Kiểm tra lại</button>
+          <button class="danger" data-action="confirm-submit">Nộp bài</button>
+        </div>
+      </div>
+    </div>`;
 }
 function importStudentsForm(sid) {
-  return `<div class="dialog"><div class="dialog-head"><div><span class="eyebrow">DANH SÁCH THÍ SINH</span><h2>Import học sinh</h2></div><button class="mini" data-action="close-modal">Đóng</button></div><div class="dialog-body"><form id="importStudentsForm" data-id="${sid}"><div class="notice"><b>Hướng dẫn file danh sách Word (.docx)</b><br>Bảng cần có các cột theo thứ tự: STT · Mã học sinh/SBD · Họ và tên · Lớp · Ngày sinh. Mã học sinh, họ tên và lớp là bắt buộc; tên lớp phải trùng với lớp đã tạo trong hệ thống. Ngày sinh có thể để trống; nhập theo DD/MM/YYYY hoặc YYYY-MM-DD. Mỗi học sinh một dòng. Điền dữ liệu vào dòng trống trong file mẫu, xem trước lỗi rồi mới xác nhận nhập.</div><a href="${esc(state.base)}/api/templates/students.docx" target="_blank" rel="noreferrer">Tải file Word mẫu danh sách học sinh</a><div class="spacer"></div><label class="field">File danh sách (.docx)<input name="file" type="file" accept=".docx" required></label><div id="studentPreview"></div><div id="importError" class="error"></div><div class="form-actions"><button class="secondary" type="button" data-action="close-modal">Đóng</button><button class="primary">Xem trước</button></div></form></div></div>`;
+  return `<div class="dialog">
+      <div class="dialog-head">
+        <div>
+          <span class="eyebrow">DANH SÁCH THÍ SINH</span>
+          <h2>Import học sinh</h2>
+        </div>
+        <button class="mini" data-action="close-modal">Đóng</button>
+      </div>
+      <div class="dialog-body">
+        <form id="importStudentsForm" data-id="${sid}">
+          <div class="notice">
+            <b>Hướng dẫn file danh sách Word (.docx)</b>
+            <br>Bảng cần có các cột theo thứ tự: STT · Mã học sinh/SBD · Họ và tên · Lớp · Ngày sinh. Mã học sinh, họ tên và lớp là bắt buộc; tên lớp phải trùng với lớp đã tạo trong hệ thống. Ngày sinh có thể để trống; nhập theo DD/MM/YYYY hoặc YYYY-MM-DD. Mỗi học sinh một dòng. Điền dữ liệu vào dòng trống trong file mẫu, xem trước lỗi rồi mới xác nhận nhập.</div>
+          <a href="${esc(state.base)}/api/templates/students.docx" target="_blank" rel="noreferrer">Tải file Word mẫu danh sách học sinh</a>
+          <div class="spacer">
+          </div>
+          <label class="field">File danh sách (.docx)<input name="file" type="file" accept=".docx" required>
+          </label>
+          <div id="studentPreview">
+          </div>
+          <div id="importError" class="error">
+          </div>
+          <div class="form-actions">
+            <button class="secondary" type="button" data-action="close-modal">Đóng</button>
+            <button class="primary">Xem trước</button>
+          </div>
+        </form>
+      </div>
+    </div>`;
 }
 async function importStudentsFormFor(sid) {
   openModal(importStudentsForm(sid));
 }
 function importQuestionsForm() {
-  return `<div class="dialog"><div class="dialog-head"><div><span class="eyebrow">NGÂN HÀNG CÂU HỎI</span><h2>Import từ Word</h2></div><button class="mini" data-action="close-modal">Đóng</button></div><div class="dialog-body"><form id="importQuestionsForm"><div class="form-grid two"><label class="field">Môn<select name="subject_id">${state.subjects.map((x) => `<option value="${x.subject_id}">${esc(x.subject_name)}</option>`).join("")}</select></label><label class="field">Khối<select name="grade_id">${state.grades.map((x) => `<option value="${x.grade_id}">${esc(x.grade_name)}</option>`).join("")}</select></label><label class="field">Chủ đề<select name="topic_id" id="importTopic" required></select></label><label class="field">Bài học<select name="lesson_id" id="importLesson"><option value="">Không chọn bài học</option></select></label></div><label class="inline-check"><input name="is_public" type="checkbox"> Công khai các câu hỏi import với giáo viên khác</label><p class="muted">Bỏ chọn thì chỉ bạn và admin xem được.</p><div class="notice"><b>Hướng dẫn file Word (.docx)</b><br>File cần có một bảng với các cột theo thứ tự: STT · Mã · Nội dung · Đáp án · Loại câu · Mức độ.<ul><li><b>TN:</b> nội dung gồm câu hỏi và bốn lựa chọn ghi A., B., C., D.; đáp án là A/B/C/D.</li><li><b>ĐS:</b> nội dung gồm bốn ý ghi a), b), c), d); đáp án gồm bốn ký tự Đ/S, ví dụ ĐSĐS.</li><li><b>ĐT:</b> nội dung câu hỏi; đáp án là câu trả lời. Mức độ ghi NB/TH/VD/VDC hoặc 1/2/3/4.</li></ul>Mỗi dòng trong bảng là một câu hỏi. Chọn đúng môn, khối, chủ đề và bài cho toàn bộ file.</div><button type="button" class="secondary" data-action="download-question-template">Tải file Word mẫu câu hỏi</button><div class="spacer"></div><label class="field">File câu hỏi (.docx)<input name="file" type="file" accept=".docx" required></label><div id="questionImportPreview"></div><div class="form-actions"><button type="button" class="secondary" data-action="close-modal">Đóng</button><button class="primary">Xem trước file</button></div></form></div></div>`;
+  return `<div class="dialog">
+      <div class="dialog-head">
+        <div>
+          <span class="eyebrow">NGÂN HÀNG CÂU HỎI</span>
+          <h2>Import từ Word</h2>
+        </div>
+        <button class="mini" data-action="close-modal">Đóng</button>
+      </div>
+      <div class="dialog-body">
+        <form id="importQuestionsForm">
+          <div class="form-grid two">
+            <label class="field">Môn<select name="subject_id">${state.subjects.map((x) => `<option value="${x.subject_id}">${esc(x.subject_name)}
+                  </option>`).join("")}
+                </select>
+            </label>
+            <label class="field">Khối<select name="grade_id">${state.grades.map((x) => `<option value="${x.grade_id}">${esc(x.grade_name)}
+                  </option>`).join("")}
+                </select>
+            </label>
+            <label class="field">Chủ đề<select name="topic_id" id="importTopic" required>
+              </select>
+            </label>
+            <label class="field">Bài học<select name="lesson_id" id="importLesson">
+                <option value="">Không chọn bài học</option>
+              </select>
+            </label>
+          </div>
+          <label class="inline-check">
+            <input name="is_public" type="checkbox"> Công khai các câu hỏi import với giáo viên khác</label>
+          <p class="muted">Bỏ chọn thì chỉ bạn và admin xem được.</p>
+          <div class="notice">
+            <b>Hướng dẫn file Word (.docx)</b>
+            <br>File cần có một bảng với các cột theo thứ tự: STT · Mã · Nội dung · Đáp án · Loại câu · Mức độ.<ul>
+              <li>
+                <b>TN:</b> nội dung gồm câu hỏi và bốn lựa chọn ghi A., B., C., D.; đáp án là A/B/C/D.</li>
+              <li>
+                <b>ĐS:</b> nội dung gồm bốn ý ghi a), b), c), d); đáp án gồm bốn ký tự Đ/S, ví dụ ĐSĐS.</li>
+              <li>
+                <b>ĐT:</b> nội dung câu hỏi; đáp án là câu trả lời. Mức độ ghi NB/TH/VD/VDC hoặc 1/2/3/4.</li>
+            </ul>Mỗi dòng trong bảng là một câu hỏi. Chọn đúng môn, khối, chủ đề và bài cho toàn bộ file.</div>
+          <button type="button" class="secondary" data-action="download-question-template">Tải file Word mẫu câu hỏi</button>
+          <div class="spacer">
+          </div>
+          <label class="field">File câu hỏi (.docx)<input name="file" type="file" accept=".docx" required>
+          </label>
+          <div id="questionImportPreview">
+          </div>
+          <div class="form-actions">
+            <button type="button" class="secondary" data-action="close-modal">Đóng</button>
+            <button class="primary">Xem trước file</button>
+          </div>
+        </form>
+      </div>
+    </div>`;
 }
 async function initImportQuestionsForm() {
   const f = $("#importQuestionsForm"),
@@ -1588,7 +2061,11 @@ async function createRoom(form) {
         <div class="join-code">${esc(created.access_code)}</div>
         <p class="muted">Mã đề: ${esc(state.shuffle.paper_code_prefix)} + ${state.shuffle.paper_code_length} chữ số · ${state.shuffle.paper_variant_count} phiên bản</p>
         <p class="muted">${esc(created.join_url)}</p>
-        <div class="room-qr"><img src="${esc(created.qr_data_url || "")}" alt="QR vào phòng thi"><a class="secondary" href="${esc(created.qr_data_url || "")}" download="qr-phong-${created.session_id}.png">Tải QR dạng ảnh</a><p class="muted">QR chỉ cho phép vào trong 15 phút từ giờ bắt đầu. Học sinh đã vào tiếp tục làm bài bình thường.</p></div>
+        <div class="room-qr">
+            <img src="${esc(created.qr_data_url || "")}" alt="QR vào phòng thi">
+            <a class="secondary" href="${esc(created.qr_data_url || "")}" download="qr-phong-${created.session_id}.png">Tải QR dạng ảnh</a>
+            <p class="muted">QR chỉ cho phép vào trong 15 phút từ giờ bắt đầu. Học sinh đã vào tiếp tục làm bài bình thường.</p>
+          </div>
         <div class="form-actions">
           <button class="secondary" data-action="import-students" data-id="${created.session_id}">Import học sinh</button>
           <button class="primary" data-action="close-modal">Xong</button>
