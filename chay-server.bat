@@ -7,6 +7,18 @@ if not exist "backend\.env" (
     exit /b 1
 )
 
+if not exist "database\data.db" (
+    echo Khong tim thay database. Hay chay setup.bat truoc.
+    pause
+    exit /b 1
+)
+
+if not exist ".venv\Scripts\python.exe" (
+    echo Chua cai moi truong python. Hay chay setup.bat truoc.
+    pause
+    exit /b 1
+)
+
 cd /d "%~dp0backend"
 
 echo Server tren may nay: http://127.0.0.1:8000
