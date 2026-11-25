@@ -7,8 +7,23 @@ const esc = (x) =>
         c
       ],
   );
+
+function mathHTML(text) {
+  return String(text ?? "")
+    .split(/(\$[^$]+\$)/)
+    .map((part, i) => {
+      if (i % 2 == 0 || !window.katex) return esc(part);
+      try {
+        return katex.renderToString(part.slice(1, -1), { throwOnError: false });
+      } catch {
+        return esc(part);
+      }
+    })
+    .join("");
+}
+
 function questionTextHtml(text) {
-  return esc(text).replace(
+  return mathHTML(text).replace(
     /!\[\]\(\/media\/([a-f0-9]{16}\.(?:png|jpe?g|gif|webp))\)/gi,
     (_, file) =>
       `<img class="question-inline-image" src="${esc(state.base.replace(/\/$/, ""))}/media/${file}" alt="Hình minh họa câu hỏi">`,
@@ -308,7 +323,6 @@ function classPage() {
 function renderClassTable() {
   const rows = $("#classRows");
   if (!rows) return;
-  $("#classCount").textContent = `${state.classes.length} lớp`;
   rows.innerHTML = state.classes.length
     ? state.classes
         .map(
@@ -328,7 +342,7 @@ function renderClassTable() {
     : '<tr><td colspan="4" class="empty">Chưa có lớp học.</td></tr>';
 }
 function usersPage() {
-  return fillTemplate("users", { USER_COUNT: state.users.length });
+  return fillTemplate("users", {});
 }
 function renderUserTable() {
   const rows = $("#userRows");
@@ -380,42 +394,53 @@ function questionsPage() {
 function renderQuestionsTable() {
   const rows = $("#questionRows");
   if (!rows) return;
-  $("#questionCount").textContent = `${state.questionTotal} câu hỏi`;
-  $("#questionFoot").textContent = `Hiển thị ${state.questions.length} câu hỏi`;
   rows.innerHTML = state.questions.length
     ? state.questions
-        .map(
-          (q) =>
-            `<tr>
-                <td>
-                  <div class="qtext">${questionTextHtml(q.question_text)}</div>
-                  <span class="sub">Q-${q.question_id}</span>
-                </td>
-                <td>${esc(state.subjects.find((x) => x.subject_id === q.subject_id)?.subject_name || "—")}
-                    <span class="sub">${esc(state.grades.find((x) => x.grade_id === q.grade_id)?.grade_name || "—")}
-                    </span>
-                </td>
-                <td>
-                  <span class="pill">${typeName[q.question_type] || q.question_type}</span>
-                </td>
-                <td>
-                  <span class="pill gray">${diffName[q.difficulty] || q.difficulty}</span>
-                </td>
-                <td>
-                  <span class="pill ${q.is_public ? "green" : "gray"}">${q.is_public ? "Công khai" : "Riêng tư"}</span>
-                </td>
-                <td>
-                  <span class="pill ${q.is_active ? "green" : "gray"}">${q.is_active ? "Đang dùng" : "Đã tắt"}</span>
-                </td>
-                <td>
-                  <div class="row-actions">${q.can_manage ? `<button class="mini" data-action="edit-question" data-id="${q.question_id}">Sửa</button>
-                    <button class="mini" data-action="toggle-question-visibility" data-id="${q.question_id}" data-public="${q.is_public ? 0 : 1}">${q.is_public ? "Chuyển riêng tư" : "Chuyển công khai"}</button>
-                    <button class="mini" data-action="toggle-question" data-id="${q.question_id}" data-active="${q.is_active ? 0 : 1}">${q.is_active ? "Tắt" : "Bật"}
-                      </button>` : `<button class="mini" data-action="edit-question" data-id="${q.question_id}">Xem</button>`}
-                      </div>
-                </td>
-              </tr>`,
-        )
+        .map((q) => {
+          const subject =
+            state.subjects.find((x) => x.subject_id === q.subject_id)
+              ?.subject_name || "—";
+          const grade =
+            state.grades.find((x) => x.grade_id === q.grade_id)?.grade_name ||
+            "—";
+          const actions = q.can_manage
+            ? `
+                <button class="mini" data-action="edit-question" data-id="${q.question_id}">Sửa</button>
+                <button class="mini" data-action="toggle-question-visibility" data-id="${q.question_id}" data-public="${q.is_public ? 0 : 1}">
+                  ${q.is_public ? "Chuyển riêng tư" : "Chuyển công khai"}
+                </button>
+                <button class="mini" data-action="toggle-question" data-id="${q.question_id}" data-active="${q.is_active ? 0 : 1}">
+                  ${q.is_active ? "Tắt" : "Bật"}
+                </button>
+              `
+            : `<button class="mini" data-action="edit-question" data-id="${q.question_id}">Xem</button>`;
+
+          return `
+            <tr>
+              <td>
+                <div class="qtext">${questionTextHtml(q.question_text)}</div>
+                <span class="sub">Q-${q.question_id}</span>
+              </td>
+              <td>
+                ${esc(subject)}
+                <span class="sub">${esc(grade)}</span>
+              </td>
+              <td><span class="pill">${typeName[q.question_type] || q.question_type}</span></td>
+              <td><span class="pill gray">${diffName[q.difficulty] || q.difficulty}</span></td>
+              <td>
+                <span class="pill ${q.is_public ? "green" : "gray"}">
+                  ${q.is_public ? "Công khai" : "Riêng tư"}
+                </span>
+              </td>
+              <td>
+                <span class="pill ${q.is_active ? "green" : "gray"}">
+                  ${q.is_active ? "Đang dùng" : "Đã tắt"}
+                </span>
+              </td>
+              <td><div class="row-actions">${actions}</div></td>
+            </tr>
+          `;
+        })
         .join("")
     : '<tr><td colspan="7" class="empty">Không có câu hỏi phù hợp. Thử thay đổi bộ lọc hoặc thêm câu mới.</td></tr>';
 }
@@ -444,7 +469,7 @@ function publicQuestionView(q) {
             .map(
               (o) => `
                 <p>
-                  ${esc(o.option_key)}. ${esc(o.option_text)}${
+                  ${esc(o.option_key)}. ${questionTextHtml(o.option_text)}${
                     o.is_correct ? " (đáp án đúng)" : ""
                   }
                 </p>
@@ -470,7 +495,57 @@ function questionForm(q = null) {
   const accepted = (q?.accepted_answers || [])
     .map((x) => x.answer_text)
     .join("; ");
-  return `<div class="dialog">
+  const gradeOptions = state.grades
+    .map(
+      (x) => `
+    <option value="${x.grade_id}" ${x.grade_id === q?.question?.grade_id ? "selected" : ""}>
+      ${esc(x.grade_name)}
+    </option>
+  `,
+    )
+    .join("");
+  const subjectOptions = state.subjects
+    .map(
+      (x) => `
+    <option value="${x.subject_id}" ${x.subject_id === q?.question?.subject_id ? "selected" : ""}>
+      ${esc(x.subject_name)}
+    </option>
+  `,
+    )
+    .join("");
+  const questionTypeOptions = Object.entries(typeName)
+    .map(
+      ([value, label]) => `
+    <option value="${value}" ${value === q?.question?.question_type ? "selected" : ""}>
+      ${label}
+    </option>
+  `,
+    )
+    .join("");
+  const difficultyOptions = Object.entries(diffName)
+    .map(
+      ([value, label]) => `
+    <option value="${value}" ${value === q?.question?.difficulty ? "selected" : ""}>
+      ${value} · ${label}
+    </option>
+  `,
+    )
+    .join("");
+  const existingImages = (q?.media || [])
+    .filter((media) => media.media_type === "image")
+    .map(
+      (media) => `
+      <img
+        class="question-inline-image"
+        src="${esc(state.base.replace(/\/$/, ""))}${esc(media.image_url || "")}"
+        alt="Ảnh câu hỏi"
+      >
+    `,
+    )
+    .join("");
+
+  return `
+    <div class="dialog">
       <div class="dialog-head">
         <div>
           <span class="eyebrow">NGÂN HÀNG CÂU HỎI</span>
@@ -481,70 +556,67 @@ function questionForm(q = null) {
       <div class="dialog-body">
         <form id="questionForm" data-id="${q?.question?.question_id || ""}">
           <div class="form-grid two">
-            <label class="field">Khối lớp<select name="grade_id" required>${state.grades.map((x) => `<option value="${x.grade_id}" ${x.grade_id === q?.question?.grade_id ? "selected" : ""}>${esc(x.grade_name)}
-                  </option>`).join("")}
-                </select>
+            <label class="field">
+              Khối lớp
+              <select name="grade_id" required>${gradeOptions}</select>
             </label>
-            <label class="field">Môn học<select name="subject_id" required>${state.subjects.map((x) => `<option value="${x.subject_id}" ${x.subject_id === q?.question?.subject_id ? "selected" : ""}>${esc(x.subject_name)}
-                  </option>`).join("")}
-                </select>
+            <label class="field">
+              Môn học
+              <select name="subject_id" required>${subjectOptions}</select>
               <button type="button" class="mini catalog-add" data-action="add-subject">Thêm môn học</button>
             </label>
-            <label class="field">Chủ đề<select name="topic_id" id="formTopic" required>
+            <label class="field">
+              Chủ đề
+              <select name="topic_id" id="formTopic" required>
                 <option value="">Chọn chủ đề</option>
               </select>
               <button type="button" class="mini catalog-add" data-action="add-topic">Thêm chủ đề</button>
             </label>
-            <label class="field">Bài học<select name="lesson_id" id="formLesson">
+            <label class="field">
+              Bài học
+              <select name="lesson_id" id="formLesson">
                 <option value="">Không chọn bài học</option>
               </select>
             </label>
-            <label class="field">Dạng câu<select name="question_type" id="formType">${Object.entries(
-    typeName,
-  )
-    .map(
-      ([v, n]) =>
-        `<option value="${v}" ${v === q?.question?.question_type ? "selected" : ""}>${n}</option>`,
-    )
-    .join(
-      "",
-    )}</select></label><label class="field">Mức độ<select name="difficulty">${Object.entries(
-    diffName,
-  )
-    .map(
-      ([v, n]) =>
-        `<option value="${v}" ${v === q?.question?.difficulty ? "selected" : ""}>${v} · ${n}</option>`,
-    )
-    .join(
-      "",
-    )}</select>
-      </label>
-      <label class="field full-width">Nội dung<textarea name="question_text" required>${esc(q?.question?.question_text || "")}
-          </textarea>
-      </label>
-      <label class="field full-width">Giải thích / lời giải<textarea name="explanation">${esc(q?.question?.explanation || "")}
-          </textarea>
-      </label>
+            <label class="field">
+              Dạng câu
+              <select name="question_type" id="formType">${questionTypeOptions}</select>
+            </label>
+            <label class="field">
+              Mức độ
+              <select name="difficulty">${difficultyOptions}</select>
+            </label>
+            <label class="field full-width">
+              Nội dung
+              <textarea name="question_text" required>${esc(q?.question?.question_text || "")}</textarea>
+            </label>
+            <label class="field full-width">
+              Giải thích / lời giải
+              <textarea name="explanation">${esc(q?.question?.explanation || "")}</textarea>
+            </label>
+          </div>
+          <label class="field full-width">
+            Ảnh minh họa
+            <input name="image_files" type="file" accept=".png,.jpg,.jpeg,.gif,.webp" multiple>
+            <small class="muted">Có thể chọn nhiều ảnh PNG, JPG, GIF hoặc WebP; tối đa 5 MB mỗi ảnh.</small>
+          </label>
+          ${existingImages}
+          <div class="spacer"></div>
+          <label class="inline-check">
+            <input name="is_public" type="checkbox" ${q?.question?.is_public ? "checked" : ""}>
+            Công khai câu hỏi với các giáo viên khác
+          </label>
+          <p class="muted">Câu riêng tư chỉ bạn và admin xem được.</p>
+          <div id="answerFields"></div>
+          <div id="formError" class="error"></div>
+          <div class="form-actions">
+            <button type="button" class="secondary" data-action="close-modal">Hủy</button>
+            <button class="primary" type="submit">${q ? "Lưu thay đổi" : "Tạo câu hỏi"}</button>
+          </div>
+        </form>
       </div>
-      <label class="field full-width">Ảnh minh họa<input name="image_files" type="file" accept=".png,.jpg,.jpeg,.gif,.webp" multiple>
-        <small class="muted">Có thể chọn nhiều ảnh PNG, JPG, GIF hoặc WebP; tối đa 5 MB mỗi ảnh.</small>
-      </label>${(q?.media || []).filter((m) => m.media_type === "image").map((m) => `<img class="question-inline-image" src="${esc(state.base.replace(/\/$/, ""))}${esc(m.image_url || "")}" alt="Ảnh câu hỏi">`).join("")}
-        <div class="spacer">
-      </div>
-      <label class="inline-check">
-        <input name="is_public" type="checkbox" ${q?.question?.is_public ? "checked" : ""}> Công khai câu hỏi với các giáo viên khác</label>
-      <p class="muted">Câu riêng tư chỉ bạn và admin xem được.</p>
-      <div id="answerFields">
-      </div>
-      <div id="formError" class="error">
-      </div>
-      <div class="form-actions">
-        <button type="button" class="secondary" data-action="close-modal">Hủy</button>
-        <button class="primary" type="submit">${q ? "Lưu thay đổi" : "Tạo câu hỏi"}</button>
-      </div>
-      </form>
-      </div>
-      </div>`;
+    </div>
+  `;
 }
 function paintAnswerFields(type, opts = [], accepted = "") {
   const el = $("#answerFields");
@@ -562,46 +634,41 @@ function paintAnswerFields(type, opts = [], accepted = "") {
         <h2>${type === "true_false" ? "Các mệnh đề đúng / sai" : "Các phương án trả lời"}</h2>
         <p>${type === "true_false" ? "Đánh dấu đúng cho từng mệnh đề." : "Chọn một đáp án đúng."}</p>
       </div>
-    </div>${[
-    "A",
-    "B",
-    "C",
-    "D",
-  ]
-    .map((k, i) => {
-      const o = opts.find((x) => x.option_key === k);
-      const selected = Boolean(o);
-      const controls =
-        type === "true_false"
-          ? '<div class="truth-options"><label><input type="radio" name="truth_' +
-            k +
-            '" value="true" ' +
-            (selected && o.is_correct ? "checked" : "") +
-            ' required> Mệnh đề đúng</label><label><input type="radio" name="truth_' +
-            k +
-            '" value="false" ' +
-            (selected && !o.is_correct ? "checked" : "") +
-            " required> Mệnh đề sai</label></div>"
-          : '<label class="inline-check correct-option"><input type="radio" name="correct" value="' +
-            k +
-            '" ' +
-            (o?.is_correct ? "checked" : "") +
-            "> Đáp án đúng</label>";
-      return (
-        '<div class="form-grid two answer-option-row"><label class="field">Lựa chọn ' +
-        k +
-        '<input name="option_' +
-        k +
-        '" value="' +
-        esc(o?.option_text || "") +
-        '" ' +
-        (type === "true_false" ? "required" : "") +
-        "></label>" +
-        controls +
-        "</div>"
-      );
-    })
-    .join("")}`;
+    </div>${["A", "B", "C", "D"]
+      .map((k, i) => {
+        const o = opts.find((x) => x.option_key === k);
+        const selected = Boolean(o);
+        const controls =
+          type === "true_false"
+            ? '<div class="truth-options"><label><input type="radio" name="truth_' +
+              k +
+              '" value="true" ' +
+              (selected && o.is_correct ? "checked" : "") +
+              ' required> Mệnh đề đúng</label><label><input type="radio" name="truth_' +
+              k +
+              '" value="false" ' +
+              (selected && !o.is_correct ? "checked" : "") +
+              " required> Mệnh đề sai</label></div>"
+            : '<label class="inline-check correct-option"><input type="radio" name="correct" value="' +
+              k +
+              '" ' +
+              (o?.is_correct ? "checked" : "") +
+              "> Đáp án đúng</label>";
+        return (
+          '<div class="form-grid two answer-option-row"><label class="field">Lựa chọn ' +
+          k +
+          '<input name="option_' +
+          k +
+          '" value="' +
+          esc(o?.option_text || "") +
+          '" ' +
+          (type === "true_false" ? "required" : "") +
+          "></label>" +
+          controls +
+          "</div>"
+        );
+      })
+      .join("")}`;
 }
 async function ensurePageTemplate(page) {
   const pageFiles = {
@@ -619,7 +686,7 @@ async function ensurePageTemplate(page) {
 
   let source = document;
   if (document.body.dataset.page !== page) {
-    const response = await fetch(`/${pageFiles[page]}?v=20261105-usertable1`);
+    const response = await fetch(`/${pageFiles[page]}?v=20261123-exam-form-panels`);
     if (!response.ok) throw Error(`Không tải được giao diện ${pageTitle()}.`);
     source = new DOMParser().parseFromString(
       await response.text(),
@@ -628,7 +695,7 @@ async function ensurePageTemplate(page) {
   }
 
   if (!pageTemplates.layout) {
-    const response = await fetch("/teacher-layout.html?v=20261105-usertable1");
+    const response = await fetch("/teacher-layout.html?v=20261123-exam-form-panels");
     if (!response.ok) throw Error("Không tải được khung giao diện giáo viên.");
     const layoutSource = new DOMParser().parseFromString(
       await response.text(),
@@ -684,7 +751,6 @@ function examList() {
 function renderExamTable() {
   const rows = $("#examRows");
   if (!rows) return;
-  $("#examCount").textContent = `${state.exams.length} đề`;
   rows.innerHTML = state.exams.length
     ? state.exams
         .map(
@@ -739,7 +805,6 @@ function renderRoomsTable() {
   };
   const rows = $("#sessionRows");
   if (!rows) return;
-  $("#sessionCount").textContent = `${state.sessions.length} phòng thi`;
   rows.innerHTML = state.sessions.length
     ? state.sessions
         .map(
@@ -758,7 +823,18 @@ function renderRoomsTable() {
                   <span class="pill ${session.status === "ongoing" ? "green" : "gray"}">${labels[session.status] || session.status}</span>
                 </td>
                 <td>
-                  <button class="mini" data-action="manage-room" data-id="${session.session_id}">Quản lý</button> ${session.status === "scheduled" ? `<button class="mini" data-action="room-status" data-id="${session.session_id}" data-status="ongoing">Mở phòng</button>` : session.status === "ongoing" ? `<button class="mini" data-action="room-status" data-id="${session.session_id}" data-status="completed">Kết thúc</button>` : session.status === "completed" ? `<button class="mini" data-action="download-results" data-id="${session.session_id}">Lấy file kết quả</button>` : ""}
+                  <button class="mini" data-action="manage-room" data-id="${session.session_id}">
+                    Quản lý
+                  </button>
+                  ${
+                    session.status === "scheduled"
+                      ? `<button class="mini" data-action="room-status" data-id="${session.session_id}" data-status="ongoing">Mở phòng</button>`
+                      : session.status === "ongoing"
+                        ? `<button class="mini" data-action="room-status" data-id="${session.session_id}" data-status="completed">Kết thúc</button>`
+                        : session.status === "completed"
+                          ? `<button class="mini" data-action="download-results" data-id="${session.session_id}">Lấy file kết quả</button>`
+                          : ""
+                  }
                     </td>
               </tr>`,
         )
@@ -781,7 +857,16 @@ function roomForm() {
             <label class="field">Tên phòng<input name="session_name" required placeholder="Ví dụ: Ca sáng 10A1">
             </label>
             <label class="field">Đề thi<select name="exam_id" required>
-                <option value="">Chọn đề đã lưu</option>${ready.map((e) => `<option value="${e.exam_id}" ${state.selectedExam === e.exam_id ? "selected" : ""}>${esc(e.title)} · ${e.duration_minutes} phút</option>`).join("")}
+                <option value="">Chọn đề đã lưu</option>
+                ${ready
+                  .map(
+                    (e) => `
+                  <option value="${e.exam_id}" ${state.selectedExam === e.exam_id ? "selected" : ""}>
+                    ${esc(e.title)} · ${e.duration_minutes} phút
+                  </option>
+                `,
+                  )
+                  .join("")}
                   </select>
             </label>
             <label class="field">Bắt đầu<input name="start_time" type="datetime-local">
@@ -843,10 +928,19 @@ function roomManage(s, roster = []) {
         </section>
         <div class="form-actions">
           <a class="secondary" href="${esc(state.base)}/api/templates/students.docx" target="_blank" rel="noreferrer">Tải mẫu danh sách</a>
-          <button class="primary" data-action="import-students" data-id="${s.session_id}">Import học sinh</button>${s.status === "completed" || s.status === "ongoing" ? `<button class="secondary" data-action="download-results" data-id="${s.session_id}">Lấy file kết quả</button>` : ""}
+          <button class="primary" data-action="import-students" data-id="${s.session_id}">
+            Import học sinh
+          </button>
+          ${
+            s.status === "completed" || s.status === "ongoing"
+              ? `<button class="secondary" data-action="download-results" data-id="${s.session_id}">Lấy file kết quả</button>`
+              : ""
+          }
             </div>
         <section class="panel-body">
-          <h3>Danh sách học sinh (${roster.length})</h3>${roster.length ? `<div class="table-wrap">
+          <h3>Danh sách học sinh (${roster.length})</h3>${
+            roster.length
+              ? `<div class="table-wrap">
             <table>
               <thead>
                 <tr>
@@ -856,14 +950,20 @@ function roomManage(s, roster = []) {
                   <th>TRẠNG THÁI</th>
                 </tr>
               </thead>
-              <tbody>${roster.map((x) => `<tr>
+              <tbody>${roster
+                .map(
+                  (x) => `<tr>
                   <td>${esc(x.student_code)}</td>
                   <td>${esc(x.full_name)}</td>
                   <td>${esc(x.class_name || "—")}</td>
                   <td>${esc({ registered: "Chưa vào thi", in_progress: "Đang làm bài", submitted: "Đã nộp", absent: "Vắng", disqualified: "Bị loại" }[x.status] || x.status)}</td>
-                </tr>`).join("")}</tbody>
+                </tr>`,
+                )
+                .join("")}</tbody>
             </table>
-          </div>` : '<p class="muted">Chưa có học sinh trong phòng. Hãy import danh sách.</p>'}</section>
+          </div>`
+              : '<p class="muted">Chưa có học sinh trong phòng. Hãy import danh sách.</p>'
+          }</section>
         <div id="rosterResult">
         </div>
       </div>
@@ -1590,7 +1690,7 @@ async function initQuestionForm(q = null) {
 async function saveQuestion(form) {
   const fd = new FormData(form),
     type = fd.get("question_type"),
-    opts = [],
+    options = [],
     accepted = [];
   if (type === "short_answer") {
     for (const a of (fd.get("accepted_answers") || "")
@@ -1602,7 +1702,7 @@ async function saveQuestion(form) {
     for (const [i, k] of ["A", "B", "C", "D"].entries()) {
       const text = (fd.get(`option_${k}`) || "").trim();
       if (!text) continue;
-      opts.push({
+      options.push({
         option_key: k,
         option_text: text,
         is_correct:
@@ -1789,12 +1889,27 @@ function previewMarkup(d, canSave = false) {
         </div>
         <span class="pill ${d.exam.status === "ready" ? "green" : ""}">${d.exam.status === "ready" ? "Đã lưu" : "Bản nháp"}</span>
       </div>
-      <div class="panel-body">${(d.questions || []).map((q, i) => `<div class="preview-question">
-          <b>Câu ${i + 1} · ${typeName[q.question_type]} · ${diffName[q.difficulty]}</b>
-          <p>${questionTextHtml(q.question_text)}</p>
-        </div>`).join("")}<div class="form-actions">
-          <button class="secondary" data-action="download-exam" data-id="${d.exam.exam_id}">Tải đề gốc</button>${canSave ? '<button class="primary" data-action="save-exam" data-id="' + d.exam.exam_id + '">Lưu đề để mở phòng</button>' : `<button class="primary" data-action="open-shuffle" data-id="${d.exam.exam_id}">Sinh đề</button>`}
-            </div>
+      <div class="panel-body">
+        ${(d.questions || [])
+          .map(
+            (q, i) => `
+          <div class="preview-question">
+            <b>Câu ${i + 1} · ${typeName[q.question_type]} · ${diffName[q.difficulty]}</b>
+            <p>${questionTextHtml(q.question_text)}</p>
+          </div>
+        `,
+          )
+          .join("")}
+        <div class="form-actions">
+          <button class="secondary" data-action="download-exam" data-id="${d.exam.exam_id}">
+            Tải đề gốc
+          </button>
+          ${
+            canSave
+              ? `<button class="primary" data-action="save-exam" data-id="${d.exam.exam_id}">Lưu đề để mở phòng</button>`
+              : `<button class="primary" data-action="open-shuffle" data-id="${d.exam.exam_id}">Sinh đề</button>`
+          }
+        </div>
       </div>
     </div>`;
 }
@@ -1841,7 +1956,12 @@ function importStudentsForm(sid) {
         <form id="importStudentsForm" data-id="${sid}">
           <div class="notice">
             <b>Hướng dẫn file danh sách Word (.docx)</b>
-            <br>Bảng cần có các cột theo thứ tự: STT · Mã học sinh/SBD · Họ và tên · Lớp · Ngày sinh. Mã học sinh, họ tên và lớp là bắt buộc; tên lớp phải trùng với lớp đã tạo trong hệ thống. Ngày sinh có thể để trống; nhập theo DD/MM/YYYY hoặc YYYY-MM-DD. Mỗi học sinh một dòng. Điền dữ liệu vào dòng trống trong file mẫu, xem trước lỗi rồi mới xác nhận nhập.</div>
+            <br>
+            Bảng cần có các cột theo thứ tự: STT · Mã học sinh/SBD · Họ và tên · Lớp · Ngày sinh.
+            Mã học sinh, họ tên và lớp là bắt buộc; tên lớp phải trùng với lớp đã tạo trong hệ thống.
+            Ngày sinh có thể để trống; nhập theo DD/MM/YYYY hoặc YYYY-MM-DD.
+            Mỗi học sinh một dòng. Điền dữ liệu vào dòng trống trong file mẫu, xem trước lỗi rồi mới xác nhận nhập.
+          </div>
           <a href="${esc(state.base)}/api/templates/students.docx" target="_blank" rel="noreferrer">Tải file Word mẫu danh sách học sinh</a>
           <div class="spacer">
           </div>
@@ -1874,12 +1994,20 @@ function importQuestionsForm() {
       <div class="dialog-body">
         <form id="importQuestionsForm">
           <div class="form-grid two">
-            <label class="field">Môn<select name="subject_id">${state.subjects.map((x) => `<option value="${x.subject_id}">${esc(x.subject_name)}
-                  </option>`).join("")}
+            <label class="field">Môn<select name="subject_id">${state.subjects
+              .map(
+                (x) => `<option value="${x.subject_id}">${esc(x.subject_name)}
+                  </option>`,
+              )
+              .join("")}
                 </select>
             </label>
-            <label class="field">Khối<select name="grade_id">${state.grades.map((x) => `<option value="${x.grade_id}">${esc(x.grade_name)}
-                  </option>`).join("")}
+            <label class="field">Khối<select name="grade_id">${state.grades
+              .map(
+                (x) => `<option value="${x.grade_id}">${esc(x.grade_name)}
+                  </option>`,
+              )
+              .join("")}
                 </select>
             </label>
             <label class="field">Chủ đề<select name="topic_id" id="importTopic" required>

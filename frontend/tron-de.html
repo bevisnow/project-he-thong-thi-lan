@@ -1,10 +1,10 @@
 <!doctype html>
 <html lang="vi">
   <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Trộn đề · LanExam</title>
-    <link rel="stylesheet" href="/styles.css?v=20261105-usertable1">
+    <link rel="stylesheet" href="/styles.css?v=20261123-exam-form-panels" />
   </head>
   <body data-page="shuffle">
     <div id="app"></div>
@@ -33,15 +33,32 @@
           <div class="form-grid two">
             <label class="field">
               Tiền tố mã đề
-              <input id="paperCodePrefix" maxlength="8" value="{{PAPER_CODE_PREFIX}}" placeholder="VD: M">
+              <input
+                id="paperCodePrefix"
+                maxlength="8"
+                value="{{PAPER_CODE_PREFIX}}"
+                placeholder="VD: M"
+              />
             </label>
             <label class="field">
               Độ dài phần số
-              <input id="paperCodeLength" type="number" min="1" max="8" value="{{PAPER_CODE_LENGTH}}">
+              <input
+                id="paperCodeLength"
+                type="number"
+                min="1"
+                max="8"
+                value="{{PAPER_CODE_LENGTH}}"
+              />
             </label>
             <label class="field">
               Số đề muốn trộn
-              <input id="paperVariantCount" type="number" min="1" max="100" value="{{PAPER_VARIANT_COUNT}}">
+              <input
+                id="paperVariantCount"
+                type="number"
+                min="1"
+                max="100"
+                value="{{PAPER_VARIANT_COUNT}}"
+              />
             </label>
           </div>
 
@@ -58,30 +75,43 @@
           <div class="spacer"></div>
 
           <label class="inline-check">
-            <input type="checkbox" id="shuffleQuestions" {{SHUFFLE_QUESTIONS_CHECKED}}>
+            <input
+              type="checkbox"
+              id="shuffleQuestions"
+              {{SHUFFLE_QUESTIONS_CHECKED}}
+            />
             Trộn thứ tự câu hỏi
           </label>
 
           <div class="spacer"></div>
 
           <label class="inline-check">
-            <input type="checkbox" id="shuffleOptions" {{SHUFFLE_OPTIONS_CHECKED}}>
+            <input
+              type="checkbox"
+              id="shuffleOptions"
+              {{SHUFFLE_OPTIONS_CHECKED}}
+            />
             Trộn thứ tự phương án trắc nghiệm
           </label>
 
           <div class="spacer"></div>
 
           <div class="notice">
-            Mã đề được gán lần lượt theo danh sách học sinh nhập vào phòng. Hệ thống giữ đề gốc để đối chiếu kết quả.
+            Mã đề được gán lần lượt theo danh sách học sinh nhập vào phòng. Hệ
+            thống giữ đề gốc để đối chiếu kết quả.
           </div>
-          <button class="primary" data-action="use-shuffle">Dùng cấu hình này khi tạo phòng</button>
+          <button class="primary" data-action="use-shuffle">
+            Dùng cấu hình này khi tạo phòng
+          </button>
           <div id="shuffleInfo" class="muted"></div>
         </div>
       </div>
     </template>
 
-    <script src="/app.js?v=20261105-usertable1" defer></script>
-    <script src="/exam-ui.js?v=20261105-usertable1" defer></script>
-    <script src="/room-config.js?v=20261105-usertable1" defer></script>
+    <link rel="stylesheet" href="/vendor/katex/katex.min.css" />
+    <script src="/vendor/katex/katex.min.js" defer></script>
+    <script src="/app.js?v=20261123-exam-form-panels" defer></script>
+    <script src="/exam-ui.js?v=20261123-exam-form-panels" defer></script>
+    <script src="/room-config.js?v=20261123-exam-form-panels" defer></script>
   </body>
 </html>

@@ -1,10 +1,10 @@
 <!doctype html>
 <html lang="vi">
   <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Ngân hàng câu hỏi · LanExam</title>
-    <link rel="stylesheet" href="/styles.css?v=20261105-usertable1">
+    <link rel="stylesheet" href="/styles.css?v=20261123-exam-form-panels" />
   </head>
 
   <body data-page="questions">
@@ -17,9 +17,12 @@
         <div>
           <span class="eyebrow">THƯ VIỆN HỌC LIỆU</span>
           <h1>Ngân hàng câu hỏi</h1>
-          <p>Tìm câu hỏi theo phạm vi kiến thức, sau đó xem hoặc cập nhật nội dung.</p>
+          <p>Tìm kiếm, lọc và quản lý câu hỏi theo chương trình học.</p>
         </div>
-        <button class="primary" data-action="new-question">Thêm câu hỏi</button>
+        <div class="heading-actions">
+          <button class="secondary" data-action="import-questions">Nhập file Word (.docx)</button>
+          <button class="primary" data-action="new-question">Thêm câu hỏi</button>
+        </div>
       </div>
 
       <div class="panel">
@@ -28,7 +31,6 @@
             <h2>Phạm vi kiến thức</h2>
             <p>Chọn môn và khối trước khi lọc chủ đề, bài học.</p>
           </div>
-          <span class="pill">BƯỚC 1</span>
         </div>
         <div class="panel-body filters">
           <label class="field">
@@ -64,21 +66,19 @@
         <div class="panel-head">
           <div>
             <h2>Danh sách câu hỏi</h2>
-            <p id="questionCount">Đang tải...</p>
+            <p>File nhập câu hỏi: Word (.docx)</p>
           </div>
-          <span class="muted">File nhập câu hỏi: Word (.docx)</span>
         </div>
         <div class="toolbar">
-          <input id="qSearch" placeholder="Tìm nội dung câu hỏi...">
-          <select id="qType">
+          <input id="qSearch" aria-label="Tìm nội dung câu hỏi" placeholder="Tìm nội dung câu hỏi..." />
+          <select id="qType" aria-label="Dạng câu">
             <option value="">Tất cả dạng câu</option>
             {{TYPE_OPTIONS}}
           </select>
-          <select id="qDiff">
+          <select id="qDiff" aria-label="Mức độ">
             <option value="">Mọi mức độ</option>
             {{DIFFICULTY_OPTIONS}}
           </select>
-          <button class="secondary" data-action="import-questions">Import Word (.docx)</button>
         </div>
         <div class="table-wrap">
           <table>
@@ -100,12 +100,13 @@
             </tbody>
           </table>
         </div>
-        <div class="panel-foot" id="questionFoot"></div>
       </div>
     </template>
 
-    <script src="/app.js?v=20261106-import-topic-required" defer></script>
-    <script src="/exam-ui.js?v=20261105-usertable1" defer></script>
-    <script src="/room-config.js?v=20261105-usertable1" defer></script>
+    <link rel="stylesheet" href="/vendor/katex/katex.min.css" />
+    <script src="/vendor/katex/katex.min.js" defer></script>
+    <script src="/app.js?v=20261123-exam-form-panels" defer></script>
+    <script src="/exam-ui.js?v=20261123-exam-form-panels" defer></script>
+    <script src="/room-config.js?v=20261123-exam-form-panels" defer></script>
   </body>
 </html>

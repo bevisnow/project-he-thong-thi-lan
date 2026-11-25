@@ -1,10 +1,10 @@
 <!doctype html>
 <html lang="vi">
   <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Tài khoản giáo viên · LanExam</title>
-    <link rel="stylesheet" href="/styles.css?v=20261105-usertable1">
+    <link rel="stylesheet" href="/styles.css?v=20261123-exam-form-panels" />
   </head>
 
   <body data-page="users">
@@ -25,22 +25,45 @@
         <div class="panel-head">
           <div>
             <h2>Tạo tài khoản mới</h2>
-            <p>Mật khẩu tối thiểu 8 ký tự. Hệ thống chỉ cho phép tạo tài khoản giáo viên.</p>
+            <p>
+              Mật khẩu tối thiểu 8 ký tự. Hệ thống chỉ cho phép tạo tài khoản
+              giáo viên.
+            </p>
           </div>
         </div>
         <div class="panel-body">
           <form id="userForm" class="form-grid two">
             <label class="field">
               Tên đăng nhập
-              <input name="username" minlength="3" maxlength="50" required autocomplete="username" placeholder="Ví dụ: gv_toan">
+              <input
+                name="username"
+                minlength="3"
+                maxlength="50"
+                required
+                autocomplete="username"
+                placeholder="Ví dụ: gv_toan"
+              />
             </label>
             <label class="field">
               Họ và tên
-              <input name="full_name" minlength="1" maxlength="100" required placeholder="Tên giáo viên">
+              <input
+                name="full_name"
+                minlength="1"
+                maxlength="100"
+                required
+                placeholder="Tên giáo viên"
+              />
             </label>
             <label class="field">
               Mật khẩu
-              <input name="password" type="password" minlength="8" maxlength="128" required autocomplete="new-password">
+              <input
+                name="password"
+                type="password"
+                minlength="8"
+                maxlength="128"
+                required
+                autocomplete="new-password"
+              />
             </label>
             <div id="userError" class="error"></div>
             <div class="form-actions">
@@ -54,7 +77,6 @@
         <div class="panel-head">
           <div>
             <h2>Tài khoản hiện có</h2>
-            <p>{{USER_COUNT}} tài khoản</p>
           </div>
         </div>
         <div class="table-wrap">
@@ -78,8 +100,10 @@
       </div>
     </template>
 
-    <script src="/app.js?v=20261105-usertable1" defer></script>
-    <script src="/exam-ui.js?v=20261105-usertable1" defer></script>
-    <script src="/room-config.js?v=20261105-usertable1" defer></script>
+    <link rel="stylesheet" href="/vendor/katex/katex.min.css" />
+    <script src="/vendor/katex/katex.min.js" defer></script>
+    <script src="/app.js?v=20261123-exam-form-panels" defer></script>
+    <script src="/exam-ui.js?v=20261123-exam-form-panels" defer></script>
+    <script src="/room-config.js?v=20261123-exam-form-panels" defer></script>
   </body>
 </html>

@@ -1,10 +1,10 @@
 <!doctype html>
 <html lang="vi">
   <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Tổng quan · LanExam</title>
-    <link rel="stylesheet" href="/styles.css?v=20261105-usertable1">
+    <link rel="stylesheet" href="/styles.css?v=20261123-exam-form-panels" />
   </head>
   <body data-page="dashboard">
     <div id="app"></div>
@@ -22,7 +22,7 @@
 
       <div class="cards">
         <div class="stat">
-          <small>Câu hỏi đang dùng</small>
+          <small>Câu hỏi đang có</small>
           <strong>{{QUESTION_TOTAL}}</strong>
           <p>Trong ngân hàng câu hỏi</p>
         </div>
@@ -67,8 +67,10 @@
       </div>
     </template>
 
-    <script src="/app.js?v=20261105-usertable1" defer></script>
-    <script src="/exam-ui.js?v=20261105-usertable1" defer></script>
-    <script src="/room-config.js?v=20261105-usertable1" defer></script>
+    <link rel="stylesheet" href="/vendor/katex/katex.min.css" />
+    <script src="/vendor/katex/katex.min.js" defer></script>
+    <script src="/app.js?v=20261123-exam-form-panels" defer></script>
+    <script src="/exam-ui.js?v=20261123-exam-form-panels" defer></script>
+    <script src="/room-config.js?v=20261123-exam-form-panels" defer></script>
   </body>
 </html>

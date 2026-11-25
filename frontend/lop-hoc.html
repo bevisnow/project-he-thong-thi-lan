@@ -1,10 +1,10 @@
 <!doctype html>
 <html lang="vi">
   <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Lớp học · LanExam</title>
-    <link rel="stylesheet" href="/styles.css?v=20261105-usertable1">
+    <link rel="stylesheet" href="/styles.css?v=20261123-exam-form-panels" />
   </head>
 
   <body data-page="classes">
@@ -17,7 +17,9 @@
         <div>
           <span class="eyebrow">DANH SÁCH LỚP</span>
           <h1>Lớp học</h1>
-          <p>Tạo lớp để phân loại học sinh khi import danh sách vào phòng thi.</p>
+          <p>
+            Tạo lớp để phân loại học sinh khi import danh sách vào phòng thi.
+          </p>
         </div>
       </div>
 
@@ -32,15 +34,26 @@
           <form id="classForm" class="form-grid two">
             <label class="field">
               Tên lớp
-              <input name="class_name" required maxlength="50" placeholder="Ví dụ: 10A1">
+              <input
+                name="class_name"
+                required
+                maxlength="50"
+                placeholder="Ví dụ: 10A1"
+              />
             </label>
             <label class="field">
               Khối lớp
-              <select name="grade_id" required>{{GRADE_OPTIONS}}</select>
+              <select name="grade_id" required>
+                {{GRADE_OPTIONS}}
+              </select>
             </label>
             <label class="field">
               Năm học
-              <input name="school_year" maxlength="20" placeholder="Ví dụ: 2026-2027">
+              <input
+                name="school_year"
+                maxlength="20"
+                placeholder="Ví dụ: 2026-2027"
+              />
             </label>
             <div id="classError" class="error"></div>
             <div class="form-actions">
@@ -54,7 +67,6 @@
         <div class="panel-head">
           <div>
             <h2>Lớp đã tạo</h2>
-            <p id="classCount">Đang tải...</p>
           </div>
         </div>
         <div class="table-wrap">
@@ -77,8 +89,10 @@
       </div>
     </template>
 
-    <script src="/app.js?v=20261105-usertable1" defer></script>
-    <script src="/exam-ui.js?v=20261105-usertable1" defer></script>
-    <script src="/room-config.js?v=20261105-usertable1" defer></script>
+    <link rel="stylesheet" href="/vendor/katex/katex.min.css" />
+    <script src="/vendor/katex/katex.min.js" defer></script>
+    <script src="/app.js?v=20261123-exam-form-panels" defer></script>
+    <script src="/exam-ui.js?v=20261123-exam-form-panels" defer></script>
+    <script src="/room-config.js?v=20261123-exam-form-panels" defer></script>
   </body>
 </html>
