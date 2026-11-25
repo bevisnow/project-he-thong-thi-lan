@@ -7,10 +7,12 @@ from io import BytesIO
 from xml.etree import ElementTree as ET
 
 import mathtype
+import omml
 
 W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
 O = "{urn:schemas-microsoft-com:office:office}"
 V = "{urn:schemas-microsoft-com:vml}"
+M = "{http://schemas.openxmlformats.org/officeDocument/2006/math}"
 A = "{http://schemas.openxmlformats.org/drawingml/2006/main}"
 RID = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}"
 IMG_EXT = {".png", ".jpg", ".jpeg", ".gif", ".webp"}
@@ -144,6 +146,8 @@ class Doc:
                 out.append("\t")
             elif t == W + "br":
                 out.append("\n")
+            elif t == M + "oMath":
+                out.append("$" + omml.to_latex(ch) + "$")
             elif t == W + "object":
                 ole = ch.find(O + "OLEObject")
                 if ole is None:
